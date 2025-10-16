@@ -16,7 +16,7 @@ import org.springframework.web.context.WebApplicationContext;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest
+@SpringBootTest(classes = com.brideside.backend.BridesideBackendApplication.class)
 @AutoConfigureWebMvc
 @ActiveProfiles("test")
 public class SimpleDealControllerTest {

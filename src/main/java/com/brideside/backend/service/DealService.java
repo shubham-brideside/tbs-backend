@@ -60,25 +60,37 @@ public class DealService {
     
     /**
      * Initialize a deal with just contact number
-     * This creates a basic deal entry that can be updated later with full details
+     * If a deal with the same contact number already exists, it updates the updated_at timestamp
+     * Otherwise, it creates a new basic deal entry that can be updated later with full details
      * @param dealInitRequest the request containing only contact number
-     * @return the created deal ID
+     * @return the deal ID (existing or newly created)
      */
     @CacheEvict(value = "deals", allEntries = true)
     public Integer initializeDeal(DealInitRequestDto dealInitRequest) {
-        // Create a basic deal with just contact number and placeholder values
-        Deal deal = new Deal(
-            "TBD", // Placeholder for name - will be updated later
-            dealInitRequest.getContactNumber(),
-            "TBD", // Placeholder for category - will be updated later
-            null, // Event date - will be updated later
-            null, // Venue - will be updated later
-            null, // Budget - will be updated later
-            null  // Expected gathering - will be updated later
-        );
+        // Check if a deal with the same contact number already exists
+        List<Deal> existingDeals = dealRepository.findByContactNumber(dealInitRequest.getContactNumber());
         
-        Deal savedDeal = dealRepository.save(deal);
-        return savedDeal.getId();
+        if (!existingDeals.isEmpty()) {
+            // If deals exist with the same contact number, update the first one's timestamp
+            Deal existingDeal = existingDeals.get(0);
+            // The @UpdateTimestamp annotation will automatically update the updatedAt field
+            Deal updatedDeal = dealRepository.save(existingDeal);
+            return updatedDeal.getId();
+        } else {
+            // Create a new basic deal with just contact number and placeholder values
+            Deal deal = new Deal(
+                "TBD", // Placeholder for name - will be updated later
+                dealInitRequest.getContactNumber(),
+                "TBD", // Placeholder for category - will be updated later
+                null, // Event date - will be updated later
+                null, // Venue - will be updated later
+                null, // Budget - will be updated later
+                null  // Expected gathering - will be updated later
+            );
+            
+            Deal savedDeal = dealRepository.save(deal);
+            return savedDeal.getId();
+        }
     }
     
     /**

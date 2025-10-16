@@ -2,6 +2,7 @@ package com.brideside.backend.service;
 
 import com.brideside.backend.dto.DealRequestDto;
 import com.brideside.backend.dto.DealResponseDto;
+import com.brideside.backend.dto.DealInitRequestDto;
 import com.brideside.backend.entity.Deal;
 import com.brideside.backend.repository.DealRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -75,5 +76,54 @@ class DealServiceTest {
         assertNotNull(result);
         assertEquals(expectedDeals.size(), result.size());
         verify(dealRepository, times(1)).findAll();
+    }
+
+    @Test
+    void testInitializeDeal_NewDeal() {
+        // Given
+        DealInitRequestDto initRequest = new DealInitRequestDto();
+        initRequest.setContactNumber("+1234567890");
+        
+        Deal savedDeal = new Deal();
+        savedDeal.setId(1);
+        
+        when(dealRepository.findByContactNumber("+1234567890")).thenReturn(Arrays.asList());
+        when(dealRepository.save(any(Deal.class))).thenReturn(savedDeal);
+
+        // When
+        Integer result = dealService.initializeDeal(initRequest);
+
+        // Then
+        assertNotNull(result);
+        assertEquals(1, result);
+        verify(dealRepository, times(1)).findByContactNumber("+1234567890");
+        verify(dealRepository, times(1)).save(any(Deal.class));
+    }
+
+    @Test
+    void testInitializeDeal_ExistingDeal() {
+        // Given
+        DealInitRequestDto initRequest = new DealInitRequestDto();
+        initRequest.setContactNumber("+1234567890");
+        
+        Deal existingDeal = new Deal();
+        existingDeal.setId(1);
+        existingDeal.setContactNumber("+1234567890");
+        existingDeal.setUserName("Existing User");
+        
+        Deal updatedDeal = new Deal();
+        updatedDeal.setId(1);
+        
+        when(dealRepository.findByContactNumber("+1234567890")).thenReturn(Arrays.asList(existingDeal));
+        when(dealRepository.save(existingDeal)).thenReturn(updatedDeal);
+
+        // When
+        Integer result = dealService.initializeDeal(initRequest);
+
+        // Then
+        assertNotNull(result);
+        assertEquals(1, result);
+        verify(dealRepository, times(1)).findByContactNumber("+1234567890");
+        verify(dealRepository, times(1)).save(existingDeal);
     }
 }

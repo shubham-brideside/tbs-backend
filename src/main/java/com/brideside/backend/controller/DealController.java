@@ -57,11 +57,12 @@ public class DealController {
     
     /**
      * Initialize a deal with just contact number
-     * This creates a basic deal entry that can be updated later with full details
+     * If a deal with the same contact number already exists, it updates the updated_at timestamp
+     * Otherwise, it creates a new basic deal entry that can be updated later with full details
      */
     @Operation(
         summary = "Initialize Deal", 
-        description = "Create a basic deal entry with just contact number. This is the first step in the two-step deal creation process. Returns a deal ID that can be used later to update the deal with full details using the PUT /api/deals/{id} endpoint.",
+        description = "Initialize a deal with contact number. If a deal with the same contact number already exists, it updates the updated_at timestamp. Otherwise, it creates a new basic deal entry. This is the first step in the two-step deal creation process. Returns a deal ID that can be used later to update the deal with full details using the PUT /api/deals/{id} endpoint.",
         tags = {"Deal Initialization"}
     )
     @ApiResponses(value = {
@@ -97,7 +98,7 @@ public class DealController {
             Integer dealId = dealService.initializeDeal(dealInitRequest);
             Map<String, Object> response = new HashMap<>();
             response.put("deal_id", dealId);
-            response.put("message", "Deal initialized successfully with contact number: " + dealInitRequest.getContactNumber());
+            response.put("message", "Deal processed successfully with contact number: " + dealInitRequest.getContactNumber());
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
         } catch (Exception e) {
             Map<String, Object> errorResponse = new HashMap<>();

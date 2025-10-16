@@ -1,8 +1,8 @@
 -- Create database if it doesn't exist
-CREATE DATABASE IF NOT EXISTS reevah;
+CREATE DATABASE IF NOT EXISTS thebrideside;
 
 -- Use the database
-USE reevah;
+USE thebrideside;
 
 -- Create the deals table
 CREATE TABLE IF NOT EXISTS deals (

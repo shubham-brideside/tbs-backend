@@ -1,5 +1,5 @@
-# Use OpenJDK 17 as base image
-FROM openjdk:17-jdk-slim
+# Use OpenJDK 21 as base image (matches your Java version)
+FROM openjdk:21-jdk-slim
 
 # Set working directory
 WORKDIR /app
@@ -12,8 +12,8 @@ RUN apt-get update && apt-get install -y \
 # Create non-root user
 RUN groupadd -r appuser && useradd -r -g appuser appuser
 
-# Copy the JAR file
-COPY target/brideside-backend-*.jar app.jar
+# Copy the JAR file (using the correct filename from your project)
+COPY target/backend-*.jar app.jar
 
 # Create logs directory
 RUN mkdir -p /var/log/brideside-backend && \

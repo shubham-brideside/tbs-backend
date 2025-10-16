@@ -1,7 +1,7 @@
 -- Database initialization script for Docker
-CREATE DATABASE IF NOT EXISTS reevah CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
+CREATE DATABASE IF NOT EXISTS thebrideside CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
 
-USE reevah;
+USE thebrideside;
 
 -- Create deals table
 CREATE TABLE IF NOT EXISTS `deals` (
@@ -24,5 +24,5 @@ CREATE TABLE IF NOT EXISTS `deals` (
 
 -- Create user for the application
 CREATE USER IF NOT EXISTS 'brideside'@'%' IDENTIFIED BY 'Shubham@123';
-GRANT ALL PRIVILEGES ON reevah.* TO 'brideside'@'%';
+GRANT ALL PRIVILEGES ON thebrideside.* TO 'brideside'@'%';
 FLUSH PRIVILEGES;
