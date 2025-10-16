@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  # MySQL Database for development
+  mysql-dev:
+    image: mysql:8.0
+    container_name: brideside-mysql-dev
+    environment:
+      MYSQL_ROOT_PASSWORD: Shubham@123
+      MYSQL_DATABASE: reevah
+      MYSQL_USER: brideside
+      MYSQL_PASSWORD: Shubham@123
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_dev_data:/var/lib/mysql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - brideside-dev-network
+    restart: unless-stopped
+
+volumes:
+  mysql_dev_data:
+
+networks:
+  brideside-dev-network:
+    driver: bridge
