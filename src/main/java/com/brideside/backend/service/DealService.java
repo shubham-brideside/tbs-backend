@@ -191,9 +191,10 @@ public class DealService {
     /**
      * Update a deal by ID without requiring contact number
      * This is used for the two-step process where contact number was already set during initialization
+     * Creates multiple deal entries for each category provided, all using the same contact number
      * @param id the deal ID
      * @param dealUpdateRequest the updated deal data (without contact number)
-     * @return the updated deal
+     * @return the first updated deal (for backward compatibility)
      */
     @CacheEvict(value = "deals", allEntries = true)
     public DealResponseDto.DealDto updateDealWithoutContactNumber(Integer id, DealUpdateRequestDto dealUpdateRequest) {
@@ -205,20 +206,38 @@ public class DealService {
             throw new RuntimeException("Deal with id " + id + " has already been fully configured");
         }
         
-        // Update the deal with new data (assuming single category for update)
-        if (!dealUpdateRequest.getCategories().isEmpty()) {
-            DealUpdateRequestDto.CategoryDto category = dealUpdateRequest.getCategories().get(0);
-            existingDeal.setUserName(dealUpdateRequest.getName());
-            // Keep the existing contact number - don't update it
-            existingDeal.setCategory(category.getName());
-            existingDeal.setEventDate(category.getEventDate());
-            existingDeal.setVenue(category.getVenue());
-            existingDeal.setBudget(category.getBudget());
-            existingDeal.setExpectedGathering(category.getExpectedGathering());
+        if (dealUpdateRequest.getCategories().isEmpty()) {
+            throw new RuntimeException("At least one category is required");
         }
         
-        Deal updatedDeal = dealRepository.save(existingDeal);
-        return convertToDealDto(updatedDeal);
+        String contactNumber = existingDeal.getContactNumber();
+        String userName = dealUpdateRequest.getName();
+        Deal firstUpdatedDeal = null;
+        
+        // Create a new deal entry for each category
+        for (DealUpdateRequestDto.CategoryDto category : dealUpdateRequest.getCategories()) {
+            Deal newDeal = new Deal(
+                userName,
+                contactNumber, // Use the same contact number from the initialized deal
+                category.getName(),
+                category.getEventDate(),
+                category.getVenue(),
+                category.getBudget(),
+                category.getExpectedGathering()
+            );
+            
+            Deal savedDeal = dealRepository.save(newDeal);
+            
+            // Keep reference to the first deal for return value
+            if (firstUpdatedDeal == null) {
+                firstUpdatedDeal = savedDeal;
+            }
+        }
+        
+        // Delete the original initialized deal since we've created new ones
+        dealRepository.delete(existingDeal);
+        
+        return convertToDealDto(firstUpdatedDeal);
     }
     
     /**

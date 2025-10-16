@@ -110,10 +110,11 @@ public class DealController {
     /**
      * Update a deal with full details (name and categories) without contact number
      * This is the second step in the two-step deal creation process
+     * Creates multiple deal entries for each category provided, all using the same contact number
      */
     @Operation(
         summary = "Update Deal Details", 
-        description = "Update a deal with name and categories. This is the second step in the two-step deal creation process. Contact number is not required as it was already set during initialization.",
+        description = "Update a deal with name and categories. This is the second step in the two-step deal creation process. Creates multiple deal entries for each category provided, all using the same contact number from the initialized deal. Contact number is not required as it was already set during initialization.",
         tags = {"Deal Update"}
     )
     @ApiResponses(value = {
@@ -143,7 +144,7 @@ public class DealController {
                 mediaType = "application/json",
                 schema = @Schema(implementation = DealUpdateRequestDto.class),
                 examples = @ExampleObject(
-                    value = "{\"name\": \"John Doe\", \"categories\": [{\"name\": \"Wedding Photography\", \"event_date\": \"2024-06-15\", \"venue\": \"Grand Hotel\", \"budget\": 5000.00, \"expected_gathering\": 150}]}"
+                    value = "{\"name\": \"John Doe\", \"categories\": [{\"name\": \"Wedding Photography\", \"event_date\": \"2024-06-15\", \"venue\": \"Grand Hotel\", \"budget\": 5000, \"expected_gathering\": 150}, {\"name\": \"Makeup\", \"event_date\": \"2024-06-15\", \"venue\": \"Grand Hotel\", \"budget\": 3000, \"expected_gathering\": 150}]}"
                 )
             )
         )

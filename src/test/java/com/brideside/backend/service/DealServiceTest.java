@@ -3,6 +3,7 @@ package com.brideside.backend.service;
 import com.brideside.backend.dto.DealRequestDto;
 import com.brideside.backend.dto.DealResponseDto;
 import com.brideside.backend.dto.DealInitRequestDto;
+import com.brideside.backend.dto.DealUpdateRequestDto;
 import com.brideside.backend.entity.Deal;
 import com.brideside.backend.repository.DealRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -125,5 +126,53 @@ class DealServiceTest {
         assertEquals(1, result);
         verify(dealRepository, times(1)).findByContactNumber("+1234567890");
         verify(dealRepository, times(1)).save(existingDeal);
+    }
+
+    @Test
+    void testUpdateDealWithoutContactNumber_MultipleCategories() {
+        // Given
+        DealUpdateRequestDto updateRequest = new DealUpdateRequestDto();
+        updateRequest.setName("John Doe");
+        
+        DealUpdateRequestDto.CategoryDto category1 = new DealUpdateRequestDto.CategoryDto();
+        category1.setName("Photography");
+        category1.setEventDate(LocalDate.of(2024, 6, 15));
+        category1.setVenue("Grand Hotel");
+        category1.setBudget(new BigDecimal("5000"));
+        category1.setExpectedGathering(150);
+        
+        DealUpdateRequestDto.CategoryDto category2 = new DealUpdateRequestDto.CategoryDto();
+        category2.setName("Makeup");
+        category2.setEventDate(LocalDate.of(2024, 6, 15));
+        category2.setVenue("Grand Hotel");
+        category2.setBudget(new BigDecimal("3000"));
+        category2.setExpectedGathering(150);
+        
+        updateRequest.setCategories(Arrays.asList(category1, category2));
+        
+        Deal existingDeal = new Deal();
+        existingDeal.setId(1);
+        existingDeal.setUserName("TBD");
+        existingDeal.setContactNumber("+1234567890");
+        existingDeal.setCategory("TBD");
+        
+        Deal newDeal1 = new Deal();
+        newDeal1.setId(2);
+        
+        Deal newDeal2 = new Deal();
+        newDeal2.setId(3);
+        
+        when(dealRepository.findById(1)).thenReturn(java.util.Optional.of(existingDeal));
+        when(dealRepository.save(any(Deal.class))).thenReturn(newDeal1, newDeal2);
+
+        // When
+        DealResponseDto.DealDto result = dealService.updateDealWithoutContactNumber(1, updateRequest);
+
+        // Then
+        assertNotNull(result);
+        assertEquals(2, result.getId());
+        verify(dealRepository, times(1)).findById(1);
+        verify(dealRepository, times(2)).save(any(Deal.class)); // Should save 2 new deals
+        verify(dealRepository, times(1)).delete(existingDeal); // Should delete original deal
     }
 }
