@@ -152,9 +152,9 @@ class DealServiceTest {
         
         Deal existingDeal = new Deal();
         existingDeal.setId(1);
-        existingDeal.setUserName("TBD");
+        existingDeal.setUserName("TBS");
         existingDeal.setContactNumber("+1234567890");
-        existingDeal.setCategory("TBD");
+        existingDeal.setCategory("TBS");
         
         Deal newDeal1 = new Deal();
         newDeal1.setId(2);

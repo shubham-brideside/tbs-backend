@@ -54,6 +54,12 @@ public class Deal {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
     
+    @Column(name = "pipedrive_deal_id", length = 100)
+    private String pipedriveDealId;
+    
+    @Column(name = "contact_id")
+    private Integer contactId;
+    
     // Default constructor
     public Deal() {}
     
@@ -150,6 +156,22 @@ public class Deal {
         this.updatedAt = updatedAt;
     }
     
+    public String getPipedriveDealId() {
+        return pipedriveDealId;
+    }
+    
+    public void setPipedriveDealId(String pipedriveDealId) {
+        this.pipedriveDealId = pipedriveDealId;
+    }
+    
+    public Integer getContactId() {
+        return contactId;
+    }
+    
+    public void setContactId(Integer contactId) {
+        this.contactId = contactId;
+    }
+    
     @Override
     public String toString() {
         return "Deal{" +
@@ -163,6 +185,8 @@ public class Deal {
                 ", expectedGathering=" + expectedGathering +
                 ", createdAt=" + createdAt +
                 ", updatedAt=" + updatedAt +
+                ", pipedriveDealId='" + pipedriveDealId + '\'' +
+                ", contactId=" + contactId +
                 '}';
     }
 }

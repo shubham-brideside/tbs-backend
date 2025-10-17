@@ -2,9 +2,13 @@ spring:
   application:
     name: brideside-backend
   
+  # Timezone Configuration
+  jackson:
+    time-zone: Asia/Kolkata
+  
   # Database Configuration
   datasource:
-    url: jdbc:mysql://${DB_HOST:thebrideside.mysql.database.azure.com:3306}/${DB_DATABASE:thebrideside}?useSSL=${DB_SSL:true}&allowPublicKeyRetrieval=true&serverTimezone=UTC&characterEncoding=UTF-8&useUnicode=true&autoReconnect=true&failOverReadOnly=false&maxReconnects=10&createDatabaseIfNotExist=true
+    url: jdbc:mysql://${DB_HOST:thebrideside.mysql.database.azure.com:3306}/${DB_DATABASE:thebrideside}?useSSL=${DB_SSL:true}&allowPublicKeyRetrieval=true&serverTimezone=Asia/Kolkata&characterEncoding=UTF-8&useUnicode=true&autoReconnect=true&failOverReadOnly=false&maxReconnects=10&createDatabaseIfNotExist=true
     username: ${DB_USER:thebrideside}
     password: ${DB_PASSWORD:TheBride@260799}
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -27,6 +31,7 @@ spring:
         format_sql: ${JPA_FORMAT_SQL:false}
         jdbc:
           batch_size: 20
+          time_zone: Asia/Kolkata
         order_inserts: true
         order_updates: true
         batch_versioned_data: true
@@ -114,6 +119,20 @@ springdoc:
     tagsSorter: alpha
     tryItOutEnabled: true
   show-actuator: false
+
+# Pipedrive Configuration
+pipedrive:
+  api:
+    token: ${PIPEDRIVE_API_TOKEN:3300616fba6c2bfd07d314a14520786791f1d20e}
+    base-url: ${PIPEDRIVE_BASE_URL:https://acceltancy4.pipedrive.com}
+    org-id: ${PIPEDRIVE_ORG_ID:41}
+  deal:
+    pipeline-id: ${PIPEDRIVE_PIPELINE_ID:13}
+    custom-fields:
+      event-type: ${PIPEDRIVE_DEAL_EVENT_TYPE_FIELD:accd9fb1f4d3f8908a76936061144431b98352e6}
+      event-date: ${PIPEDRIVE_DEAL_EVENT_DATE_FIELD:7b61d5c385508aa4cef1a30d7c3b350209670f39}
+      venue: ${PIPEDRIVE_DEAL_VENUE_FIELD:477fb2ebb13a363c7bf614255f42c8133c9f2447}
+      dealSource: ${PIPEDRIVE_DEAL_SOURCE_FIELD:ae66e7601c2787449fe3e796ac803fc62645a22b}
 
 # Application Info
 info:
