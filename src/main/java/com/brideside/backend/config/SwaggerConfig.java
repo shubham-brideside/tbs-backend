@@ -32,8 +32,11 @@ public class SwaggerConfig {
                                 .url("http://localhost:8080")
                                 .description("Development Server"),
                         new Server()
+                                .url("https://thebrideside-agdnavgxhhcffpby.centralindia-01.azurewebsites.net")
+                                .description("Azure Production Server"),
+                        new Server()
                                 .url("https://api.brideside.com")
-                                .description("Production Server")
+                                .description("Future Production Server")
                 ));
     }
 }

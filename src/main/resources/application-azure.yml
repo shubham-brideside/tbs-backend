@@ -60,4 +60,7 @@ springdoc:
     operationsSorter: method
     tagsSorter: alpha
     tryItOutEnabled: true
+    defaultModelsExpandDepth: 1
+    defaultModelExpandDepth: 1
+    displayRequestDuration: true
   show-actuator: false
