@@ -46,6 +46,7 @@ jobs:
       uses: azure/login@v1
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
+        enable-AZURE_HTTP_USER_AGENT: true
     
     - name: 'Login to Azure Container Registry'
       run: |
