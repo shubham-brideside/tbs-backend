@@ -236,10 +236,10 @@ public class DealService {
     /**
      * Update a deal by ID without requiring contact number
      * This is used for the two-step process where contact number was already set during initialization
-     * Creates multiple deal entries for each category provided, all using the same contact number
+     * Updates the original deal with the first category and creates additional deals for remaining categories
      * @param id the deal ID
      * @param dealUpdateRequest the updated deal data (without contact number)
-     * @return the first updated deal (for backward compatibility)
+     * @return the updated original deal
      */
     @CacheEvict(value = "deals", allEntries = true)
     public DealResponseDto.DealDto updateDealWithoutContactNumber(Integer id, DealUpdateRequestDto dealUpdateRequest) {
@@ -296,55 +296,79 @@ public class DealService {
             }
         }
         
-        // Create a new deal entry for each category
-        for (DealUpdateRequestDto.CategoryDto category : dealUpdateRequest.getCategories()) {
-            Deal newDeal = new Deal(
-                userName,
-                contactNumber, // Use the same contact number from the initialized deal
-                category.getName(),
-                category.getEventDate(),
-                category.getVenue(),
-                category.getBudget(),
-                category.getExpectedGathering()
-            );
-            
-            // Set contact ID if available
-            if (contact != null) {
-                newDeal.setContactId(contact.getId());
-            }
-            
-            // Create deal in Pipedrive if contact is available
-            if (contact != null) {
-                try {
-                    String pipedriveDealId = pipedriveService.createDeal(contact, category.getName(), 
-                        category.getBudget() != null ? category.getBudget().intValue() : 0);
-                    newDeal.setPipedriveDealId(pipedriveDealId);
-                    
-                    // Update Pipedrive deal with custom fields including full name and title
-                    pipedriveService.updateDealCustomFields(pipedriveDealId, 
-                        category.getName(), 
-                        category.getEventDate(), 
-                        category.getVenue(),
-                        userName);
-                } catch (Exception e) {
-                    logger.error("Error updating Pipedrive for deal: {}", category.getName(), e);
-                    // If Pipedrive fails, continue without Pipedrive integration
-                    // The deal will still be saved locally
-                }
-            }
-            
-            Deal savedDeal = dealRepository.save(newDeal);
-            
-            // Keep reference to the first deal for return value
-            if (firstUpdatedDeal == null) {
-                firstUpdatedDeal = savedDeal;
+        // Update the original deal with the first category (primary deal)
+        DealUpdateRequestDto.CategoryDto firstCategory = dealUpdateRequest.getCategories().get(0);
+        
+        // Update the existing deal with real data
+        existingDeal.setUserName(userName);
+        existingDeal.setCategory(firstCategory.getName());
+        existingDeal.setEventDate(firstCategory.getEventDate());
+        existingDeal.setVenue(firstCategory.getVenue());
+        existingDeal.setBudget(firstCategory.getBudget());
+        existingDeal.setExpectedGathering(firstCategory.getExpectedGathering());
+        
+        // Update Pipedrive deal if contact is available
+        if (contact != null && existingDeal.getPipedriveDealId() != null) {
+            try {
+                // Update the existing Pipedrive deal with custom fields including full name and title
+                pipedriveService.updateDealCustomFields(existingDeal.getPipedriveDealId(), 
+                    firstCategory.getName(), 
+                    firstCategory.getEventDate(), 
+                    firstCategory.getVenue(),
+                    userName);
+            } catch (Exception e) {
+                logger.error("Error updating Pipedrive deal {}: {}", existingDeal.getPipedriveDealId(), e);
+                // If Pipedrive fails, continue without Pipedrive integration
             }
         }
         
-        // Delete the original initialized deal since we've created new ones
-        dealRepository.delete(existingDeal);
+        // Save the updated deal
+        Deal updatedDeal = dealRepository.save(existingDeal);
         
-        return convertToDealDto(firstUpdatedDeal);
+        // If there are additional categories, create separate deals for them
+        if (dealUpdateRequest.getCategories().size() > 1) {
+            for (int i = 1; i < dealUpdateRequest.getCategories().size(); i++) {
+                DealUpdateRequestDto.CategoryDto category = dealUpdateRequest.getCategories().get(i);
+                
+                Deal additionalDeal = new Deal(
+                    userName,
+                    contactNumber,
+                    category.getName(),
+                    category.getEventDate(),
+                    category.getVenue(),
+                    category.getBudget(),
+                    category.getExpectedGathering()
+                );
+                
+                // Set contact ID if available
+                if (contact != null) {
+                    additionalDeal.setContactId(contact.getId());
+                }
+                
+                // Create additional deal in Pipedrive if contact is available
+                if (contact != null) {
+                    try {
+                        String pipedriveDealId = pipedriveService.createDeal(contact, category.getName(), 
+                            category.getBudget() != null ? category.getBudget().intValue() : 0);
+                        additionalDeal.setPipedriveDealId(pipedriveDealId);
+                        
+                        // Update Pipedrive deal with custom fields including full name and title
+                        pipedriveService.updateDealCustomFields(pipedriveDealId, 
+                            category.getName(), 
+                            category.getEventDate(), 
+                            category.getVenue(),
+                            userName);
+                    } catch (Exception e) {
+                        logger.error("Error creating additional Pipedrive deal for category: {}", category.getName(), e);
+                        // If Pipedrive fails, continue without Pipedrive integration
+                    }
+                }
+                
+                dealRepository.save(additionalDeal);
+            }
+        }
+        
+        return convertToDealDto(updatedDeal);
     }
     
     /**

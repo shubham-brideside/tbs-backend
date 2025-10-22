@@ -110,11 +110,11 @@ public class DealController {
     /**
      * Update a deal with full details (name and categories) without contact number
      * This is the second step in the two-step deal creation process
-     * Creates multiple deal entries for each category provided, all using the same contact number
+     * Updates the original deal with the first category and creates additional deals for remaining categories
      */
     @Operation(
         summary = "Update Deal Details", 
-        description = "Update a deal with name and categories. This is the second step in the two-step deal creation process. Creates multiple deal entries for each category provided, all using the same contact number from the initialized deal. Contact number is not required as it was already set during initialization.",
+        description = "Update a deal with name and categories. This is the second step in the two-step deal creation process. Updates the original deal with the first category and creates additional deals for any remaining categories. The original deal ID and Pipedrive deal ID are preserved. Contact number is not required as it was already set during initialization.",
         tags = {"Deal Update"}
     )
     @ApiResponses(value = {
