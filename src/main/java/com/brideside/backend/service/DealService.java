@@ -414,6 +414,6 @@ public class DealService {
             deal.getExpectedGathering(),
             deal.getCreatedAt() != null ? deal.getCreatedAt().format(DATETIME_FORMATTER) : null,
             deal.getUpdatedAt() != null ? deal.getUpdatedAt().format(DATETIME_FORMATTER) : null
-        );
+        ); 
     }
 }
