@@ -278,20 +278,34 @@ public class DealService {
                 contact = null;
             }
         } else {
-            // Update contact name in Pipedrive if it was "TBS"
-            if ("TBS".equals(contact.getContactName())) {
+            // Update contact name in Pipedrive if it was "TBS" or starts with "TBS_"
+            if (contact.getContactName().startsWith("TBS")) {
                 try {
                     // Update contact name locally with unique format
                     String uniqueContactName = userName + "_" + contactNumber;
                     contact.setContactName(uniqueContactName);
                     contactRepository.save(contact);
-                    // Note: We would need to implement updatePerson in PipedriveService to update in Pipedrive
+                    
+                    // Update person's first name in Pipedrive
+                    if (contact.getPipedriveContactId() != null) {
+                        pipedriveService.updatePersonFirstName(contact.getPipedriveContactId(), userName);
+                    }
                 } catch (Exception e) {
                     logger.error("Error updating contact name for contact: {}", contactNumber, e);
                     // If update fails, continue with local update
                     String uniqueContactName = userName + "_" + contactNumber;
                     contact.setContactName(uniqueContactName);
                     contactRepository.save(contact);
+                }
+            } else {
+                // Even if contact name doesn't start with "TBS", update the first name in Pipedrive with the new userName
+                try {
+                    if (contact.getPipedriveContactId() != null) {
+                        pipedriveService.updatePersonFirstName(contact.getPipedriveContactId(), userName);
+                    }
+                } catch (Exception e) {
+                    logger.error("Error updating person first name in Pipedrive for contact: {}", contactNumber, e);
+                    // Continue without Pipedrive update
                 }
             }
         }

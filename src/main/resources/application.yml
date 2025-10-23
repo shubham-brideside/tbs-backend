@@ -133,6 +133,9 @@ pipedrive:
       event-date: ${PIPEDRIVE_DEAL_EVENT_DATE_FIELD:7b61d5c385508aa4cef1a30d7c3b350209670f39}
       venue: ${PIPEDRIVE_DEAL_VENUE_FIELD:477fb2ebb13a363c7bf614255f42c8133c9f2447}
       dealSource: ${PIPEDRIVE_DEAL_SOURCE_FIELD:ae66e7601c2787449fe3e796ac803fc62645a22b}
+  person:
+    custom-fields:
+      personSource: ${PIPEDRIVE_PERSON_SOURCE_FIELD:bb67874cea1b01f4eadb549eda0033ff530ea0ba}
 
 # Application Info
 info:

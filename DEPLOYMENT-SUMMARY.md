@@ -1,6 +1,6 @@
 # 🚀 Brideside Backend - Azure Deployment Summary
 
-This document provides a comprehensive overview of all deployment options and files created for deploying your Spring Boot application to Azure App Service.
+This document provides a comprehensive overview of all deployment options and files created for deploying your Spring Boot application to Azure App Service. 
 
 ## 📁 Files Created/Modified
 

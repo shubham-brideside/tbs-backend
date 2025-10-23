@@ -98,7 +98,7 @@ Write-Host "2. deals table - should have 3 deals with Pipedrive deal IDs and con
 Write-Host "`n🎯 Pipedrive Integration Test Complete!" -ForegroundColor Green
 Write-Host "=====================================" -ForegroundColor Green
 Write-Host "Check your Pipedrive account for:"
-Write-Host "1. New person created with name 'TBD' and phone '$testContactNumber' in Organization 41"
+Write-Host "1. New person created with name 'TBS' and phone '$testContactNumber' in Organization 41"
 Write-Host "2. 3 new deals created in Pipeline 13 with custom fields populated"
 Write-Host "3. Person name updated to 'John Doe' when deal details were added"
 Write-Host "`nConfiguration used:"

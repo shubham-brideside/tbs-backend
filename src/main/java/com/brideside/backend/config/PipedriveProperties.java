@@ -9,21 +9,30 @@ public class PipedriveProperties {
     
     private Api api = new Api();
     private Deal deal = new Deal();
-    
+    private Person person = new Person();
+
     public Api getApi() {
         return api;
     }
-    
+
     public void setApi(Api api) {
         this.api = api;
     }
-    
+
     public Deal getDeal() {
         return deal;
     }
-    
+
     public void setDeal(Deal deal) {
         this.deal = deal;
+    }
+
+    public Person getPerson() {
+        return person;
+    }
+
+    public void setPerson(Person person) {
+        this.person = person;
     }
     
     public static class Api {
@@ -112,6 +121,30 @@ public class PipedriveProperties {
             
             public void setDealSource(String dealSource) {
                 this.dealSource = dealSource;
+            }
+        }
+    }
+    
+    public static class Person {
+        private CustomFields customFields = new CustomFields();
+        
+        public CustomFields getCustomFields() {
+            return customFields;
+        }
+        
+        public void setCustomFields(CustomFields customFields) {
+            this.customFields = customFields;
+        }
+        
+        public static class CustomFields {
+            private String personSource;
+            
+            public String getPersonSource() {
+                return personSource;
+            }
+            
+            public void setPersonSource(String personSource) {
+                this.personSource = personSource;
             }
         }
     }

@@ -52,6 +52,16 @@ public class PipedriveService {
             requestBody.put("phone", contactNumber);
             requestBody.put("org_id", pipedriveProperties.getApi().getOrgId());
             
+            // Add Person Source field (dropdown - Website option)
+            String personSourceField = pipedriveProperties.getPerson().getCustomFields().getPersonSource();
+            if (personSourceField != null && !personSourceField.isEmpty()) {
+                // Use string value "Website" for the Person Source dropdown
+                requestBody.put(personSourceField, "Website");
+            } else {
+                // Fallback to hardcoded field key if not configured
+                requestBody.put("bb67874cea1b01f4eadb549eda0033ff530ea0ba", "Website");
+            }
+            
             // Make API call to Pipedrive
             String url = pipedriveProperties.getApi().getBaseUrl() + "/api/v1/persons?api_token=" + pipedriveProperties.getApi().getToken();
             
@@ -215,6 +225,39 @@ public class PipedriveService {
         } catch (Exception e) {
             logger.error("Error updating person {} with name in Pipedrive", pipedriveContactId, e);
             throw new RuntimeException("Error updating person name in Pipedrive: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * Update person first name in Pipedrive
+     * @param pipedriveContactId the Pipedrive contact ID
+     * @param firstName the new first name for the person
+     */
+    public void updatePersonFirstName(String pipedriveContactId, String firstName) {
+        try {
+            // Prepare request body
+            Map<String, Object> requestBody = new HashMap<>();
+            requestBody.put("first_name", firstName);
+            
+            // Make API call to Pipedrive
+            String url = pipedriveProperties.getApi().getBaseUrl() + "/api/v1/persons/" + pipedriveContactId + "?api_token=" + pipedriveProperties.getApi().getToken();
+            
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
+            
+            ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.PUT, entity, Map.class);
+            
+            if (response.getStatusCode() == HttpStatus.OK) {
+                logger.info("Successfully updated person {} with first_name: {}", pipedriveContactId, firstName);
+            } else {
+                logger.error("Failed to update person {} with first_name. Response: {}", pipedriveContactId, response.getBody());
+                throw new RuntimeException("Failed to update person first name in Pipedrive");
+            }
+            
+        } catch (Exception e) {
+            logger.error("Error updating person {} with first_name in Pipedrive", pipedriveContactId, e);
+            throw new RuntimeException("Error updating person first name in Pipedrive: " + e.getMessage());
         }
     }
 }
