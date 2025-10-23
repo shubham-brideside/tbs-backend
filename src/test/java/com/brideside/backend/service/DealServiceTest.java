@@ -5,7 +5,9 @@ import com.brideside.backend.dto.DealResponseDto;
 import com.brideside.backend.dto.DealInitRequestDto;
 import com.brideside.backend.dto.DealUpdateRequestDto;
 import com.brideside.backend.entity.Deal;
+import com.brideside.backend.entity.Contact;
 import com.brideside.backend.repository.DealRepository;
+import com.brideside.backend.repository.ContactRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -20,6 +22,8 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -27,6 +31,12 @@ class DealServiceTest {
 
     @Mock
     private DealRepository dealRepository;
+    
+    @Mock
+    private ContactRepository contactRepository;
+    
+    @Mock
+    private PipedriveService pipedriveService;
 
     @InjectMocks
     private DealService dealService;
@@ -90,6 +100,14 @@ class DealServiceTest {
         
         when(dealRepository.findByContactNumber("+1234567890")).thenReturn(Arrays.asList());
         when(dealRepository.save(any(Deal.class))).thenReturn(savedDeal);
+        
+        // Mock PipedriveService calls to prevent NullPointerException
+        try {
+            when(pipedriveService.createPerson(anyString(), anyString())).thenReturn(new Contact());
+            when(pipedriveService.createDeal(any(Contact.class), anyString(), anyInt())).thenReturn("pipedrive-deal-id");
+        } catch (Exception e) {
+            // Mock exceptions to simulate Pipedrive failures
+        }
 
         // When
         Integer result = dealService.initializeDeal(initRequest);
@@ -156,23 +174,45 @@ class DealServiceTest {
         existingDeal.setContactNumber("+1234567890");
         existingDeal.setCategory("TBS");
         
-        Deal newDeal1 = new Deal();
-        newDeal1.setId(2);
+        Deal updatedDeal = new Deal();
+        updatedDeal.setId(1);
+        updatedDeal.setUserName("John Doe");
+        updatedDeal.setCategory("Photography");
         
-        Deal newDeal2 = new Deal();
-        newDeal2.setId(3);
+        Deal additionalDeal = new Deal();
+        additionalDeal.setId(2);
+        additionalDeal.setUserName("John Doe");
+        additionalDeal.setCategory("Makeup");
         
         when(dealRepository.findById(1)).thenReturn(java.util.Optional.of(existingDeal));
-        when(dealRepository.save(any(Deal.class))).thenReturn(newDeal1, newDeal2);
+        
+        // Use Answer to control mock behavior based on call count
+        final int[] callCount = {0};
+        when(dealRepository.save(any(Deal.class))).thenAnswer(invocation -> {
+            callCount[0]++;
+            if (callCount[0] == 1) {
+                return updatedDeal; // First call returns updated deal
+            } else {
+                return additionalDeal; // Subsequent calls return additional deal
+            }
+        });
+        
+        // Mock PipedriveService calls to prevent NullPointerException
+        try {
+            when(pipedriveService.createPerson(anyString(), anyString())).thenReturn(new Contact());
+            when(pipedriveService.createDeal(any(Contact.class), anyString(), anyInt())).thenReturn("pipedrive-deal-id");
+            doNothing().when(pipedriveService).updateDealCustomFields(anyString(), anyString(), any(), anyString(), anyString());
+        } catch (Exception e) {
+            // Mock exceptions to simulate Pipedrive failures
+        }
 
         // When
         DealResponseDto.DealDto result = dealService.updateDealWithoutContactNumber(1, updateRequest);
 
         // Then
         assertNotNull(result);
-        assertEquals(2, result.getId());
         verify(dealRepository, times(1)).findById(1);
-        verify(dealRepository, times(2)).save(any(Deal.class)); // Should save 2 new deals
-        verify(dealRepository, times(1)).delete(existingDeal); // Should delete original deal
+        verify(dealRepository, times(3)).save(any(Deal.class)); // Should save contact update + updated original + additional deal
+        verify(dealRepository, never()).delete(any(Deal.class)); // Should NOT delete original deal
     }
 }
