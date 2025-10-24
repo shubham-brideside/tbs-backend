@@ -201,7 +201,7 @@ class DealServiceTest {
         try {
             when(pipedriveService.createPerson(anyString(), anyString())).thenReturn(new Contact());
             when(pipedriveService.createDeal(any(Contact.class), anyString(), anyInt())).thenReturn("pipedrive-deal-id");
-            doNothing().when(pipedriveService).updateDealCustomFields(anyString(), anyString(), any(), anyString(), anyString());
+            doNothing().when(pipedriveService).updateDealCustomFields(anyString(), anyString(), any(), anyString(), anyString(), any());
         } catch (Exception e) {
             // Mock exceptions to simulate Pipedrive failures
         }
