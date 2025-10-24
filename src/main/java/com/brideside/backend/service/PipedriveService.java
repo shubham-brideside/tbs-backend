@@ -11,6 +11,7 @@ import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
@@ -150,8 +151,9 @@ public class PipedriveService {
      * @param eventDate the event date
      * @param venue the venue
      * @param fullName the full name for the deal custom field
+     * @param budget the budget value for the deal
      */
-    public void updateDealCustomFields(String pipedriveDealId, String category, LocalDate eventDate, String venue, String fullName) {
+    public void updateDealCustomFields(String pipedriveDealId, String category, LocalDate eventDate, String venue, String fullName, BigDecimal budget) {
         try {
             // Prepare request body with custom fields
             Map<String, Object> requestBody = new HashMap<>();
@@ -172,6 +174,11 @@ public class PipedriveService {
             
             // Add Full Name custom field 
             requestBody.put("84ab8ec8732455ab7cf75f5661f2c027c7b1e5cd", fullName);
+            
+            // Add budget value if provided
+            if (budget != null) {
+                requestBody.put("value", budget.intValue());
+            }
             
             // Make API call to Pipedrive
             String url = pipedriveProperties.getApi().getBaseUrl() + "/api/v1/deals/" + pipedriveDealId + "?api_token=" + pipedriveProperties.getApi().getToken();

@@ -329,7 +329,8 @@ public class DealService {
                     firstCategory.getName(), 
                     firstCategory.getEventDate(), 
                     firstCategory.getVenue(),
-                    userName);
+                    userName,
+                    firstCategory.getBudget());
             } catch (Exception e) {
                 logger.error("Error updating Pipedrive deal {}: {}", existingDeal.getPipedriveDealId(), e);
                 // If Pipedrive fails, continue without Pipedrive integration
@@ -371,7 +372,8 @@ public class DealService {
                             category.getName(), 
                             category.getEventDate(), 
                             category.getVenue(),
-                            userName);
+                            userName,
+                            category.getBudget());
                     } catch (Exception e) {
                         logger.error("Error creating additional Pipedrive deal for category: {}", category.getName(), e);
                         // If Pipedrive fails, continue without Pipedrive integration
