@@ -40,6 +40,8 @@ services:
       LOG_FILE_PATH: /var/log/brideside-backend/application.log
       ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin123}
+      TZ: Asia/Kolkata
+      JAVA_OPTS: "-Duser.timezone=Asia/Kolkata"
     ports:
       - "8080:8080"
     volumes:
