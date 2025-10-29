@@ -116,6 +116,7 @@ springdoc:
     path: /api-docs
   swagger-ui:
     path: /swagger-ui.html
+    oauth2-redirect-url: /swagger-ui/oauth2-redirect.html
     operationsSorter: method
     tagsSorter: alpha
     tryItOutEnabled: true
