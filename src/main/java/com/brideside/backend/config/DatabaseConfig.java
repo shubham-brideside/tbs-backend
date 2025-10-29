@@ -30,7 +30,7 @@ public class DatabaseConfig {
         config.setDriverClassName(properties.getDriverClassName());
         
         // Store timestamps in UTC in database, but display in IST
-        config.setConnectionInitSql("SET time_zone = '+00:00', session.time_zone = '+00:00'");
+        config.setConnectionInitSql("SET time_zone = '+00:00'");
         
         // Copy HikariCP settings from properties
         config.setMaximumPoolSize(20);
