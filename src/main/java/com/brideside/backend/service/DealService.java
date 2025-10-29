@@ -292,7 +292,11 @@ public class DealService {
                     
                     // Update person's first name in Pipedrive
                     if (contact.getPipedriveContactId() != null) {
+                        logger.info("Updating person {} first_name in Pipedrive to: {}", contact.getPipedriveContactId(), userName);
                         pipedriveService.updatePersonFirstName(contact.getPipedriveContactId(), userName);
+                        logger.info("Successfully updated person {} first_name in Pipedrive", contact.getPipedriveContactId());
+                    } else {
+                        logger.warn("Cannot update person first_name: pipedriveContactId is null for contact {}", contact.getId());
                     }
                 } catch (Exception e) {
                     logger.error("Error updating contact name for contact: {}", contactNumber, e);
@@ -305,10 +309,15 @@ public class DealService {
                 // Even if contact name doesn't start with "TBS", update the first name in Pipedrive with the new userName
                 try {
                     if (contact.getPipedriveContactId() != null) {
+                        logger.info("Updating person {} first_name in Pipedrive to: {} (contact name doesn't start with TBS)", 
+                                   contact.getPipedriveContactId(), userName);
                         pipedriveService.updatePersonFirstName(contact.getPipedriveContactId(), userName);
+                        logger.info("Successfully updated person {} first_name in Pipedrive", contact.getPipedriveContactId());
+                    } else {
+                        logger.warn("Cannot update person first_name: pipedriveContactId is null for contact {}", contact.getId());
                     }
                 } catch (Exception e) {
-                    logger.error("Error updating person first name in Pipedrive for contact: {}", contactNumber, e);
+                    logger.error("Error updating person first name in Pipedrive for contact: {}", contactNumber, e.getMessage(), e);
                     // Continue without Pipedrive update
                 }
             }
@@ -328,6 +337,8 @@ public class DealService {
         // Update Pipedrive deal if contact is available
         if (contact != null && existingDeal.getPipedriveDealId() != null) {
             try {
+                logger.info("Updating Pipedrive deal {} with userName: {}, category: {}", 
+                           existingDeal.getPipedriveDealId(), userName, firstCategory.getName());
                 // Update the existing Pipedrive deal with custom fields including full name and title
                 pipedriveService.updateDealCustomFields(existingDeal.getPipedriveDealId(), 
                     firstCategory.getName(), 
@@ -335,14 +346,24 @@ public class DealService {
                     firstCategory.getVenue(),
                     userName,
                     firstCategory.getBudget());
+                logger.info("Successfully updated Pipedrive deal {} with user details", existingDeal.getPipedriveDealId());
             } catch (Exception e) {
-                logger.error("Error updating Pipedrive deal {}: {}", existingDeal.getPipedriveDealId(), e);
+                logger.error("Error updating Pipedrive deal {}: {}", existingDeal.getPipedriveDealId(), e.getMessage(), e);
                 // If Pipedrive fails, continue without Pipedrive integration
+            }
+        } else {
+            if (contact == null) {
+                logger.warn("Cannot update Pipedrive deal {}: Contact is null", existingDeal.getPipedriveDealId());
+            }
+            if (existingDeal.getPipedriveDealId() == null) {
+                logger.warn("Cannot update Pipedrive deal: pipedriveDealId is null for deal {}", existingDeal.getId());
             }
         }
         
-        // Save the updated deal
+        // Save the updated deal to database
+        logger.info("Saving updated deal {} to database with userName: {}", existingDeal.getId(), userName);
         Deal updatedDeal = dealRepository.save(existingDeal);
+        logger.info("Successfully saved deal {} to database", updatedDeal.getId());
         
         // If there are additional categories, create separate deals for them
         if (dealUpdateRequest.getCategories().size() > 1) {
