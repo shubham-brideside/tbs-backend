@@ -9,6 +9,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 
 import java.math.BigDecimal;
@@ -39,6 +41,7 @@ public class PipedriveService {
      * @param contactNumber the contact number
      * @return the created contact with Pipedrive ID
      */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public Contact createPerson(String contactName, String contactNumber) {
         try {
             // Use phone number to make contactName unique in local database

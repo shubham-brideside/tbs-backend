@@ -8,7 +8,7 @@ spring:
   
   # Database Configuration
   datasource:
-    url: jdbc:mysql://${DB_HOST:thebrideside.mysql.database.azure.com:3306}/${DB_DATABASE:thebrideside}?useSSL=${DB_SSL:true}&allowPublicKeyRetrieval=true&serverTimezone=UTC&characterEncoding=UTF-8&useUnicode=true&autoReconnect=true&failOverReadOnly=false&maxReconnects=10&createDatabaseIfNotExist=true
+    url: jdbc:mysql://${DB_HOST:thebrideside.mysql.database.azure.com:3306}/${DB_DATABASE:thebrideside}?useSSL=${DB_SSL:true}&allowPublicKeyRetrieval=true&serverTimezone=Asia/Kolkata&characterEncoding=UTF-8&useUnicode=true&autoReconnect=true&failOverReadOnly=false&maxReconnects=10&createDatabaseIfNotExist=true
     username: ${DB_USER:thebrideside}
     password: ${DB_PASSWORD:TheBride@260799}
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -31,7 +31,7 @@ spring:
         format_sql: ${JPA_FORMAT_SQL:false}
         jdbc:
           batch_size: 20
-          time_zone: UTC
+          time_zone: Asia/Kolkata
         order_inserts: true
         order_updates: true
         batch_versioned_data: true

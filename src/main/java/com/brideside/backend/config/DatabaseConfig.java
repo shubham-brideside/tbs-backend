@@ -29,8 +29,8 @@ public class DatabaseConfig {
         config.setPassword(properties.getPassword());
         config.setDriverClassName(properties.getDriverClassName());
         
-        // Store timestamps in UTC in database, but display in IST
-        config.setConnectionInitSql("SET time_zone = '+00:00'");
+        // Store timestamps in IST in database
+        config.setConnectionInitSql("SET time_zone = '+05:30'");
         
         // Copy HikariCP settings from properties
         config.setMaximumPoolSize(20);
@@ -41,7 +41,7 @@ public class DatabaseConfig {
         
         HikariDataSource dataSource = new HikariDataSource(config);
         
-        logger.info("Database configured with UTC timezone - timestamps stored in UTC, displayed in IST via Jackson");
+        logger.info("Database configured with IST timezone - timestamps stored and displayed in IST");
         
         return dataSource;
     }
