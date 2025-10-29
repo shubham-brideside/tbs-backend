@@ -47,8 +47,22 @@ public class PipedriveService {
             // Use phone number to make contactName unique in local database
             String uniqueContactName = contactName + "_" + contactNumber;
             
-            // Always create a new person in Pipedrive for each call
-            // This ensures we don't link to deleted contacts
+            // Check if contact already exists in local database
+            Optional<Contact> existingContact = contactRepository.findByContactName(uniqueContactName);
+            if (existingContact.isPresent()) {
+                Contact contact = existingContact.get();
+                // If contact exists and has Pipedrive ID, return it (don't create duplicate in Pipedrive)
+                if (contact.getPipedriveContactId() != null && !contact.getPipedriveContactId().trim().isEmpty()) {
+                    logger.info("Found existing contact {} with Pipedrive ID: {}. Reusing it.", 
+                               uniqueContactName, contact.getPipedriveContactId());
+                    return contact;
+                }
+                // If contact exists but no Pipedrive ID, we'll create person in Pipedrive and update below
+                logger.info("Found existing contact {} but no Pipedrive ID. Will create person in Pipedrive and update.", uniqueContactName);
+            }
+            
+            // Create a new person in Pipedrive
+            // This ensures we have a valid person in Pipedrive for the contact
             
             // Prepare request body
             Map<String, Object> requestBody = new HashMap<>();
@@ -92,8 +106,18 @@ public class PipedriveService {
                     throw new RuntimeException("Pipedrive person ID is null");
                 }
                 
-                // Save contact to database with unique name (phone number appended)
-                Contact contact = new Contact(uniqueContactName, pipedriveContactId);
+                // Save or update contact to database with unique name (phone number appended)
+                Contact contact;
+                if (existingContact.isPresent()) {
+                    // Update existing contact with Pipedrive ID
+                    contact = existingContact.get();
+                    contact.setPipedriveContactId(pipedriveContactId);
+                    logger.info("Updating existing contact {} with Pipedrive ID: {}", uniqueContactName, pipedriveContactId);
+                } else {
+                    // Create new contact
+                    contact = new Contact(uniqueContactName, pipedriveContactId);
+                    logger.info("Creating new contact {} with Pipedrive ID: {}", uniqueContactName, pipedriveContactId);
+                }
                 Contact savedContact = contactRepository.save(contact);
                 
                 logger.info("Successfully created person in Pipedrive with ID: {} for contact: {}", pipedriveContactId, contactName);

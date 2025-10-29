@@ -91,10 +91,41 @@ public class DealService {
         if (!existingDeals.isEmpty()) {
             // If deals exist with the same contact number, update the first one's timestamp
             Deal existingDeal = existingDeals.get(0);
-            logger.info("Found existing deal with ID: {}, contact_number: {}", 
-                       existingDeal.getId(), existingDeal.getContactNumber());
+            logger.info("Found existing deal with ID: {}, contact_number: {}, pipedrive_deal_id: {}, contact_id: {}", 
+                       existingDeal.getId(), existingDeal.getContactNumber(), 
+                       existingDeal.getPipedriveDealId(), existingDeal.getContactId());
+            
+            // If existing deal doesn't have Pipedrive IDs, create them now
+            if (existingDeal.getPipedriveDealId() == null || existingDeal.getContactId() == null) {
+                logger.info("Existing deal {} doesn't have Pipedrive IDs. Creating them now...", existingDeal.getId());
+                try {
+                    // Get or create contact in Pipedrive
+                    Contact contact = null;
+                    if (existingDeal.getContactId() != null) {
+                        contact = contactRepository.findById(existingDeal.getContactId()).orElse(null);
+                    }
+                    
+                    if (contact == null || contact.getPipedriveContactId() == null) {
+                        // Create new contact in Pipedrive
+                        contact = pipedriveService.createPerson("TBS", existingDeal.getContactNumber());
+                        existingDeal.setContactId(contact.getId());
+                    }
+                    
+                    // Create deal in Pipedrive if missing
+                    if (existingDeal.getPipedriveDealId() == null) {
+                        String pipedriveDealId = pipedriveService.createDeal(contact, "TBS Deal", 0);
+                        existingDeal.setPipedriveDealId(pipedriveDealId);
+                        logger.info("Successfully created Pipedrive deal {} for existing deal {}", pipedriveDealId, existingDeal.getId());
+                    }
+                } catch (Exception e) {
+                    logger.error("Error creating Pipedrive IDs for existing deal {}: {}", existingDeal.getId(), e.getMessage(), e);
+                    // Continue and save the deal anyway
+                }
+            }
+            
             // The @UpdateTimestamp annotation will automatically update the updatedAt field
             Deal updatedDeal = dealRepository.save(existingDeal);
+            logger.info("Updated existing deal {} timestamp", updatedDeal.getId());
             return updatedDeal.getId();
         } else {
             try {
