@@ -27,16 +27,11 @@ public class SwaggerConfig {
                         .license(new License()
                                 .name("MIT License")
                                 .url("https://opensource.org/licenses/MIT")))
+                // Use a relative server URL so Swagger uses the current origin (supports http/https)
                 .servers(List.of(
                         new Server()
-                                .url("http://localhost:8080")
-                                .description("Development Server"),
-                        new Server()
-                                .url("https://thebrideside-agdnavgxhhcffpby.centralindia-01.azurewebsites.net")
-                                .description("Azure Production Server"),
-                        new Server()
-                                .url("https://api.brideside.com")
-                                .description("Future Production Server")
+                                .url("/")
+                                .description("Current server")
                 ));
     }
 }

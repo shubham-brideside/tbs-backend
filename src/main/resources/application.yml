@@ -49,6 +49,9 @@ spring:
       password: ${ADMIN_PASSWORD:admin123}
       roles: ADMIN
 
+server:
+  forward-headers-strategy: framework
+
 # Server Configuration
 server:
   port: ${SERVER_PORT:8080}
