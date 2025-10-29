@@ -73,11 +73,24 @@ public class PipedriveService {
             headers.setContentType(MediaType.APPLICATION_JSON);
             HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
             
+            logger.info("Attempting to create person in Pipedrive with name: {}, phone: {}", contactName, contactNumber);
+            
             ResponseEntity<Map> response = restTemplate.postForEntity(url, entity, Map.class);
+            
+            logger.debug("Pipedrive createPerson API response status: {}, body: {}", response.getStatusCode(), response.getBody());
             
             if (response.getStatusCode() == HttpStatus.CREATED && response.getBody() != null) {
                 Map<String, Object> responseData = (Map<String, Object>) response.getBody().get("data");
+                if (responseData == null) {
+                    logger.error("Pipedrive createPerson response has no 'data' field. Full response: {}", response.getBody());
+                    throw new RuntimeException("Pipedrive API returned success but no data field for person creation");
+                }
                 String pipedriveContactId = String.valueOf(responseData.get("id"));
+                
+                if (pipedriveContactId == null || pipedriveContactId.equals("null")) {
+                    logger.error("Pipedrive person created but ID is null. Response: {}", response.getBody());
+                    throw new RuntimeException("Pipedrive person ID is null");
+                }
                 
                 // Save contact to database with unique name (phone number appended)
                 Contact contact = new Contact(uniqueContactName, pipedriveContactId);
@@ -86,8 +99,8 @@ public class PipedriveService {
                 logger.info("Successfully created person in Pipedrive with ID: {} for contact: {}", pipedriveContactId, contactName);
                 return savedContact;
             } else {
-                logger.error("Failed to create person in Pipedrive. Response: {}", response.getBody());
-                throw new RuntimeException("Failed to create person in Pipedrive");
+                logger.error("Failed to create person in Pipedrive. Status: {}, Response: {}", response.getStatusCode(), response.getBody());
+                throw new RuntimeException("Failed to create person in Pipedrive: Status " + response.getStatusCode() + ", Response: " + response.getBody());
             }
             
         } catch (Exception e) {
@@ -105,6 +118,12 @@ public class PipedriveService {
      */
     public String createDeal(Contact contact, String dealTitle, Integer dealValue) {
         try {
+            // Validate contact has valid Pipedrive ID
+            if (contact == null || contact.getPipedriveContactId() == null || contact.getPipedriveContactId().trim().isEmpty()) {
+                logger.error("Cannot create deal: Contact is null or missing Pipedrive contact ID. Contact: {}", contact);
+                throw new IllegalArgumentException("Contact must have a valid Pipedrive contact ID to create a deal");
+            }
+            
             // Prepare request body
             Map<String, Object> requestBody = new HashMap<>();
             requestBody.put("title", dealTitle);
@@ -128,17 +147,25 @@ public class PipedriveService {
             headers.setContentType(MediaType.APPLICATION_JSON);
             HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
             
+            logger.info("Attempting to create deal in Pipedrive for person_id: {}, title: {}", contact.getPipedriveContactId(), dealTitle);
+            
             ResponseEntity<Map> response = restTemplate.postForEntity(url, entity, Map.class);
+            
+            logger.debug("Pipedrive API response status: {}, body: {}", response.getStatusCode(), response.getBody());
             
             if (response.getStatusCode() == HttpStatus.CREATED && response.getBody() != null) {
                 Map<String, Object> responseData = (Map<String, Object>) response.getBody().get("data");
+                if (responseData == null) {
+                    logger.error("Pipedrive response has no 'data' field. Full response: {}", response.getBody());
+                    throw new RuntimeException("Pipedrive API returned success but no data field");
+                }
                 String pipedriveDealId = String.valueOf(responseData.get("id"));
                 
                 logger.info("Successfully created deal in Pipedrive with ID: {} for contact: {}", pipedriveDealId, contact.getContactName());
                 return pipedriveDealId;
             } else {
-                logger.error("Failed to create deal in Pipedrive. Response: {}", response.getBody());
-                throw new RuntimeException("Failed to create deal in Pipedrive");
+                logger.error("Failed to create deal in Pipedrive. Status: {}, Response: {}", response.getStatusCode(), response.getBody());
+                throw new RuntimeException("Failed to create deal in Pipedrive: Status " + response.getStatusCode() + ", Response: " + response.getBody());
             }
             
         } catch (Exception e) {

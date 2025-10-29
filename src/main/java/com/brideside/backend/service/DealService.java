@@ -122,21 +122,23 @@ public class DealService {
                 return savedDeal.getId();
                 
             } catch (Exception e) {
-                logger.error("Error creating contact in Pipedrive for contact: {}", dealInitRequest.getContactNumber(), e);
+                logger.error("Error creating deal in Pipedrive for contact: {}. Error: {}. Creating deal locally without Pipedrive integration.", 
+                           dealInitRequest.getContactNumber(), e.getMessage(), e);
                 // If Pipedrive integration fails, still create the deal locally
                 // This ensures the system remains functional even if Pipedrive is down
-        Deal deal = new Deal(
+                Deal deal = new Deal(
                     "TBS", // Placeholder for name - will be updated later
-            dealInitRequest.getContactNumber(),
+                    dealInitRequest.getContactNumber(),
                     "TBS", // Placeholder for category - will be updated later
-            null, // Event date - will be updated later
-            null, // Venue - will be updated later
-            null, // Budget - will be updated later
-            null  // Expected gathering - will be updated later
-        );
-        
-        Deal savedDeal = dealRepository.save(deal);
-        return savedDeal.getId();
+                    null, // Event date - will be updated later
+                    null, // Venue - will be updated later
+                    null, // Budget - will be updated later
+                    null  // Expected gathering - will be updated later
+                );
+                
+                Deal savedDeal = dealRepository.save(deal);
+                logger.warn("Deal created locally (ID: {}) without Pipedrive integration due to error", savedDeal.getId());
+                return savedDeal.getId();
             }
         }
     }
