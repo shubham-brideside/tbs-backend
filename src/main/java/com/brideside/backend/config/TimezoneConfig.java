@@ -14,15 +14,37 @@ public class TimezoneConfig {
 
     @PostConstruct
     public void init() {
-        // Set the default timezone to IST
-        TimeZone.setDefault(TimeZone.getTimeZone("Asia/Kolkata"));
+        // Set the default timezone to IST - this must be done early
+        TimeZone istTimeZone = TimeZone.getTimeZone("Asia/Kolkata");
+        TimeZone.setDefault(istTimeZone);
         
-        // Log the timezone setting for debugging
-        TimeZone currentTimeZone = TimeZone.getDefault();
-        logger.info("Timezone set to: {} (ID: {})", currentTimeZone.getDisplayName(), currentTimeZone.getID());
-        
-        // Also set system property as backup
+        // Set system property as backup (must be set before any date/time operations)
         System.setProperty("user.timezone", "Asia/Kolkata");
-        logger.info("System property user.timezone set to: {}", System.getProperty("user.timezone"));
+        
+        // Verify the timezone was set correctly
+        TimeZone currentTimeZone = TimeZone.getDefault();
+        String systemProperty = System.getProperty("user.timezone");
+        
+        logger.info("========================================");
+        logger.info("TIMEZONE CONFIGURATION:");
+        logger.info("Default TimeZone: {} (ID: {})", currentTimeZone.getDisplayName(), currentTimeZone.getID());
+        logger.info("System Property user.timezone: {}", systemProperty);
+        logger.info("Expected TimeZone ID: Asia/Kolkata");
+        logger.info("Expected Offset: +05:30 (IST)");
+        logger.info("Current Offset: {}", formatOffset(currentTimeZone.getRawOffset()));
+        logger.info("========================================");
+        
+        // Verify it's actually IST
+        if (!"Asia/Kolkata".equals(currentTimeZone.getID())) {
+            logger.error("WARNING: TimeZone is NOT set to Asia/Kolkata! Current: {}", currentTimeZone.getID());
+        } else {
+            logger.info("✓ TimeZone correctly set to IST (Asia/Kolkata)");
+        }
+    }
+    
+    private String formatOffset(int offsetMs) {
+        int offsetHours = offsetMs / (1000 * 60 * 60);
+        int offsetMinutes = Math.abs((offsetMs % (1000 * 60 * 60)) / (1000 * 60));
+        return String.format("%+03d:%02d", offsetHours, offsetMinutes);
     }
 }

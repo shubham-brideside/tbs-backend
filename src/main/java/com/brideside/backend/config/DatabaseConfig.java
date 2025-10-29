@@ -29,8 +29,10 @@ public class DatabaseConfig {
         config.setPassword(properties.getPassword());
         config.setDriverClassName(properties.getDriverClassName());
         
-        // Store timestamps in IST in database
-        config.setConnectionInitSql("SET time_zone = '+05:30'");
+        // Store timestamps in IST in database - set both global and session timezone
+        String connectionInitSql = "SET time_zone = '+05:30', session.time_zone = '+05:30'";
+        config.setConnectionInitSql(connectionInitSql);
+        logger.info("Connection Init SQL: {}", connectionInitSql);
         
         // Copy HikariCP settings from properties
         config.setMaximumPoolSize(20);
@@ -41,7 +43,13 @@ public class DatabaseConfig {
         
         HikariDataSource dataSource = new HikariDataSource(config);
         
-        logger.info("Database configured with IST timezone - timestamps stored and displayed in IST");
+        logger.info("========================================");
+        logger.info("DATABASE TIMEZONE CONFIGURATION:");
+        logger.info("Database DataSource configured");
+        logger.info("JVM Default TimeZone: {}", java.util.TimeZone.getDefault().getID());
+        logger.info("Expected: Asia/Kolkata (IST, +05:30)");
+        logger.info("Connection will use time_zone = '+05:30'");
+        logger.info("========================================");
         
         return dataSource;
     }
