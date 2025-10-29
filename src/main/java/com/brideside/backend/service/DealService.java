@@ -35,6 +35,9 @@ public class DealService {
     @Autowired
     private PipedriveService pipedriveService;
     
+    @Autowired
+    private WhatsAppService whatsAppService;
+    
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     private static final DateTimeFormatter DATETIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     
@@ -122,18 +125,18 @@ public class DealService {
                 logger.error("Error creating contact in Pipedrive for contact: {}", dealInitRequest.getContactNumber(), e);
                 // If Pipedrive integration fails, still create the deal locally
                 // This ensures the system remains functional even if Pipedrive is down
-                Deal deal = new Deal(
+        Deal deal = new Deal(
                     "TBS", // Placeholder for name - will be updated later
-                    dealInitRequest.getContactNumber(),
+            dealInitRequest.getContactNumber(),
                     "TBS", // Placeholder for category - will be updated later
-                    null, // Event date - will be updated later
-                    null, // Venue - will be updated later
-                    null, // Budget - will be updated later
-                    null  // Expected gathering - will be updated later
-                );
-                
-                Deal savedDeal = dealRepository.save(deal);
-                return savedDeal.getId();
+            null, // Event date - will be updated later
+            null, // Venue - will be updated later
+            null, // Budget - will be updated later
+            null  // Expected gathering - will be updated later
+        );
+        
+        Deal savedDeal = dealRepository.save(deal);
+        return savedDeal.getId();
             }
         }
     }
@@ -257,7 +260,6 @@ public class DealService {
         
         String contactNumber = existingDeal.getContactNumber();
         String userName = dealUpdateRequest.getName();
-        Deal firstUpdatedDeal = null;
         
         // Get the contact from the existing deal
         Contact contact = null;
@@ -384,6 +386,21 @@ public class DealService {
             }
         }
         
+        // Send WhatsApp confirmation message
+        try {
+            whatsAppService.sendDealConfirmation(
+                contactNumber,
+                userName,
+                dealUpdateRequest.getCategories(),
+                firstCategory.getEventDate(),
+                firstCategory.getVenue()
+            );
+            logger.info("WhatsApp confirmation sent successfully to: {}", contactNumber);
+        } catch (Exception e) {
+            logger.error("Failed to send WhatsApp confirmation to: {}", contactNumber, e);
+            // Don't fail the deal update if WhatsApp fails
+        }
+        
         return convertToDealDto(updatedDeal);
     }
     
@@ -430,6 +447,6 @@ public class DealService {
             deal.getExpectedGathering(),
             deal.getCreatedAt() != null ? deal.getCreatedAt().format(DATETIME_FORMATTER) : null,
             deal.getUpdatedAt() != null ? deal.getUpdatedAt().format(DATETIME_FORMATTER) : null
-        ); 
+        );
     }
 }

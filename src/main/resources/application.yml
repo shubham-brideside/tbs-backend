@@ -137,6 +137,12 @@ pipedrive:
     custom-fields:
       personSource: ${PIPEDRIVE_PERSON_SOURCE_FIELD:bb67874cea1b01f4eadb549eda0033ff530ea0ba}
 
+# WhatsApp Configuration
+whatsapp:
+  base-url: ${WHATSAPP_BASE_URL:https://graph.facebook.com/v22.0}
+  phone-number-id: ${WHATSAPP_PHONE_NUMBER_ID:812190678648433}
+  access-token: ${WHATSAPP_ACCESS_TOKEN:EAARqbESmhd8BP4uCE7ZCByZC63F7v5mouajpe2jDaOPuDfC1PncFHTkFwDlUfoffy8QqeGa9iosuP8y4IAdVR8w2F90E7EdPxgmLftV8gimpD9Bp3pcUH1tKmngrWxVw58QPA698lhEjxlUxQZC4OZAnIRGnLPnluECQDgfBYuc4bXeajTri0o0j892qgQZDZD}
+
 # Application Info
 info:
   app:
