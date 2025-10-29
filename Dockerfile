@@ -4,9 +4,12 @@ FROM openjdk:21-jdk-slim
 # Set working directory
 WORKDIR /app
 
-# Install necessary packages
+# Set timezone to IST
+ENV TZ=Asia/Kolkata
 RUN apt-get update && apt-get install -y \
     curl \
+    tzdata \
+    && ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone \
     && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user
@@ -31,10 +34,6 @@ EXPOSE 8080
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=60s --retries=3 \
     CMD curl -f http://localhost:8080/actuator/health || exit 1
-
-# Set timezone to IST
-ENV TZ=Asia/Kolkata
-RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 # JVM options for production with timezone
 ENV JAVA_OPTS="-Xms512m -Xmx1024m -XX:+UseG1GC -XX:+UseStringDeduplication -XX:+OptimizeStringConcat -Djava.security.egd=file:/dev/./urandom -Duser.timezone=Asia/Kolkata"
