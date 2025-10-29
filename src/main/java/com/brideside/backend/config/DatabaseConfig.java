@@ -29,8 +29,8 @@ public class DatabaseConfig {
         config.setPassword(properties.getPassword());
         config.setDriverClassName(properties.getDriverClassName());
         
-        // Store timestamps in IST in database - set both global and session timezone
-        String connectionInitSql = "SET time_zone = '+05:30', session.time_zone = '+05:30'";
+        // Store timestamps in IST in database - SET time_zone sets the session timezone
+        String connectionInitSql = "SET time_zone = '+05:30'";
         config.setConnectionInitSql(connectionInitSql);
         logger.info("Connection Init SQL: {}", connectionInitSql);
         
