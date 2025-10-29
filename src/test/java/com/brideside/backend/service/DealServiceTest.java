@@ -37,6 +37,9 @@ class DealServiceTest {
     
     @Mock
     private PipedriveService pipedriveService;
+    
+    @Mock
+    private WhatsAppService whatsAppService;
 
     @InjectMocks
     private DealService dealService;
