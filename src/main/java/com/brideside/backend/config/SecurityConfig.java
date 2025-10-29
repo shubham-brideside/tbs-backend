@@ -49,7 +49,9 @@ public class SecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOriginPatterns(Arrays.asList(
             "https://thebrideside-frontend-cbfzg5gmdxaya2av.canadacentral-01.azurewebsites.net",
+            "https://brideside-frontend-cbfzg5gmdxaya2av.canadacentral-01.azurewebsites.net",
             "https://www.thebrideside.in",
+            "https://thebrideside.in",
             "http://localhost:3000",
             "http://localhost:3001",
             "http://127.0.0.1:3000",
