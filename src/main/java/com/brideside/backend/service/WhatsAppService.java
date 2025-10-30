@@ -62,10 +62,10 @@ public class WhatsAppService {
         
         // Template structure
         Map<String, Object> template = new HashMap<>();
-        template.put("name", "hello_world");
+        template.put("name", "tbs_confirmation_message");
         
         Map<String, String> language = new HashMap<>();
-        language.put("code", "en_US");
+        language.put("code", "en");
         template.put("language", language);
         
         body.put("template", template);
