@@ -451,7 +451,7 @@ public class DealService {
             );
             logger.info("WhatsApp confirmation sent successfully to: {}", contactNumber);
         } catch (Exception e) {
-            logger.error("Failed to send WhatsApp confirmation to: {}", contactNumber, e);
+            logger.error("Failed to send WhatsApp confirmation to: {}. Error: {}", contactNumber, e.getMessage());
             // Don't fail the deal update if WhatsApp fails
         }
         

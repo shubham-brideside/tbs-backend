@@ -10,7 +10,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 @Service
@@ -31,6 +30,20 @@ public class WhatsAppService {
                                     List<DealUpdateRequestDto.CategoryDto> categories,
                                     LocalDate eventDate, String venue) {
         try {
+            // Validate WhatsApp properties are configured
+            if (whatsAppProperties == null || 
+                whatsAppProperties.getBaseUrl() == null || 
+                whatsAppProperties.getPhoneNumberId() == null || 
+                whatsAppProperties.getAccessToken() == null) {
+                logger.warn("WhatsApp properties are not configured. Skipping WhatsApp message send.");
+                return;
+            }
+            
+            if (restTemplate == null) {
+                logger.warn("RestTemplate is not configured. Skipping WhatsApp message send.");
+                return;
+            }
+            
             String phoneNumber = formatPhoneNumber(contactNumber);
             logger.info("Preparing to send WhatsApp message to: {}", phoneNumber);
             
@@ -42,8 +55,11 @@ public class WhatsAppService {
             
             logger.info("WhatsApp confirmation message sent successfully to: {}", phoneNumber);
             
+        } catch (IllegalArgumentException e) {
+            logger.error("Invalid phone number format: {}", contactNumber, e);
+            // Don't rethrow the exception to avoid breaking the deal update process
         } catch (Exception e) {
-            logger.error("Failed to send WhatsApp message to: {}", contactNumber, e);
+            logger.error("Failed to send WhatsApp message to: {}. Error: {}", contactNumber, e.getMessage(), e);
             // Don't rethrow the exception to avoid breaking the deal update process
         }
     }
@@ -65,7 +81,7 @@ public class WhatsAppService {
         template.put("name", "tbs_confirmation_message");
         
         Map<String, String> language = new HashMap<>();
-        language.put("code", "en");
+        language.put("code", "en_US");  // WhatsApp API requires full locale code
         template.put("language", language);
         
         body.put("template", template);
@@ -92,6 +108,8 @@ public class WhatsAppService {
             
             // Make API call
             logger.info("Sending WhatsApp message to URL: {}", url);
+            logger.debug("WhatsApp message body: {}", messageBody);
+            
             @SuppressWarnings("unchecked")
             ResponseEntity<Map<String, Object>> response = (ResponseEntity<Map<String, Object>>) (ResponseEntity<?>) restTemplate.exchange(
                 url,
@@ -103,11 +121,16 @@ public class WhatsAppService {
             if (response.getStatusCode() == HttpStatus.OK || response.getStatusCode() == HttpStatus.CREATED) {
                 logger.info("WhatsApp message sent successfully. Response: {}", response.getBody());
             } else {
-                logger.error("WhatsApp API returned unexpected status: {}", response.getStatusCode());
+                logger.error("WhatsApp API returned unexpected status: {}. Response body: {}", 
+                           response.getStatusCode(), response.getBody());
+                throw new RuntimeException("WhatsApp API returned status: " + response.getStatusCode());
             }
             
+        } catch (org.springframework.web.client.RestClientException e) {
+            logger.error("REST client error sending WhatsApp message: {}", e.getMessage(), e);
+            throw new RuntimeException("Failed to send WhatsApp message: " + e.getMessage(), e);
         } catch (Exception e) {
-            logger.error("Error sending WhatsApp message", e);
+            logger.error("Unexpected error sending WhatsApp message: {}", e.getMessage(), e);
             throw new RuntimeException("Failed to send WhatsApp message: " + e.getMessage(), e);
         }
     }
