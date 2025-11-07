@@ -24,7 +24,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/deals")
-@CrossOrigin(origins = "*")
 @Tag(name = "Deal Management", description = "APIs for managing deals and deal-related operations")
 public class DealController {
     

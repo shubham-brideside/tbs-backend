@@ -47,20 +47,22 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
+        // Explicitly allow all origins using patterns (works with allowCredentials=false)
+        // This includes localhost, 127.0.0.1, and all Azure domains
         configuration.setAllowedOriginPatterns(Arrays.asList(
-            "https://thebrideside-frontend-cbfzg5gmdxaya2av.canadacentral-01.azurewebsites.net",
-            "https://brideside-frontend-cbfzg5gmdxaya2av.canadacentral-01.azurewebsites.net",
-            "https://www.thebrideside.in",
+            "http://localhost:*",
+            "http://127.0.0.1:*",
+            "https://*.azurewebsites.net",
+            "https://*.azurestaticapps.net",
             "https://thebrideside.in",
-            "http://localhost:3000",
-            "http://localhost:3001",
-            "http://127.0.0.1:3000",
-            "http://127.0.0.1:3001"
+            "https://www.thebrideside.in",
+            "*"
         ));
-        configuration.setAllowedMethods(Arrays.asList("*"));
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH", "HEAD"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
         configuration.setExposedHeaders(Arrays.asList("*"));
-        configuration.setAllowCredentials(true);
+        // Don't require credentials for public blog API endpoints
+        configuration.setAllowCredentials(false);
         configuration.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

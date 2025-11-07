@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blog API Integration Example</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #f5f5f5;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #666;
+        }
+
+        .error {
+            background: #fee;
+            color: #c33;
+            padding: 1rem;
+            border-radius: 4px;
+            margin: 1rem 0;
+        }
+
+        .breadcrumb {
+            margin-bottom: 2rem;
+            font-size: 0.9rem;
+            color: #ff69b4;
+        }
+
+        .breadcrumb a {
+            color: #ff69b4;
+            text-decoration: none;
+        }
+
+        .breadcrumb a:hover {
+            text-decoration: underline;
+        }
+
+        .category-header {
+            display: flex;
+            gap: 2rem;
+            margin-bottom: 3rem;
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+        }
+
+        .category-content {
+            flex: 1;
+        }
+
+        .category-title {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            color: #000;
+        }
+
+        .category-description {
+            color: #666;
+            line-height: 1.8;
+        }
+
+        .category-image {
+            width: 300px;
+            height: 300px;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .category-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .posts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+
+        .post-card {
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s, box-shadow 0.2s;
+            text-decoration: none;
+            color: inherit;
+            display: block;
+        }
+
+        .post-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+        }
+
+        .post-card img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+        }
+
+        .post-card h3 {
+            padding: 1rem;
+            margin: 0;
+            font-size: 1.1rem;
+        }
+
+        .post-page {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .post-title {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .category-tag {
+            margin-bottom: 1rem;
+        }
+
+        .tag {
+            background: #ffb6c1;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .post-content {
+            margin-top: 2rem;
+            line-height: 1.8;
+        }
+
+        .post-content img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+
+        .post-meta {
+            margin-top: 2rem;
+            padding-top: 1rem;
+            border-top: 1px solid #eee;
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .post-meta span {
+            margin-right: 1rem;
+        }
+
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+            margin: 0.5rem 0.5rem 0.5rem 0;
+        }
+
+        button:hover {
+            background: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Blog API Integration Example</h1>
+        
+        <!-- Example 1: Categories List -->
+        <section id="categories-section">
+            <h2>Categories</h2>
+            <button onclick="loadCategories()">Load Categories</button>
+            <div id="categories-list" class="loading">Click button to load categories</div>
+        </section>
+
+        <!-- Example 2: Category Page -->
+        <section id="category-section" style="margin-top: 3rem;">
+            <h2>Category Page</h2>
+            <input type="text" id="category-slug-input" placeholder="Enter category slug (e.g., 'wedding')" style="padding: 0.5rem; width: 300px; margin-right: 1rem;">
+            <button onclick="loadCategoryPage()">Load Category</button>
+            <div id="category-page" class="loading">Enter slug and click button</div>
+        </section>
+
+        <!-- Example 3: Blog Post Page -->
+        <section id="post-section" style="margin-top: 3rem;">
+            <h2>Blog Post Page</h2>
+            <input type="text" id="post-slug-input" placeholder="Enter post slug" style="padding: 0.5rem; width: 300px; margin-right: 1rem;">
+            <button onclick="loadPostPage()">Load Post</button>
+            <div id="post-page" class="loading">Enter slug and click button</div>
+        </section>
+    </div>
+
+    <script>
+        // API Base URL - Change this to your backend URL
+        const API_BASE_URL = 'http://localhost:8080/api/blog';
+
+        // Generic API request function
+        async function apiRequest(endpoint) {
+            try {
+                const response = await fetch(`${API_BASE_URL}${endpoint}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return await response.json();
+            } catch (error) {
+                console.error('API Request Error:', error);
+                throw error;
+            }
+        }
+
+        // Load and display categories
+        async function loadCategories() {
+            const container = document.getElementById('categories-list');
+            container.innerHTML = '<div class="loading">Loading...</div>';
+
+            try {
+                const categories = await apiRequest('/categories');
+                
+                if (categories.length === 0) {
+                    container.innerHTML = '<p>No categories found.</p>';
+                    return;
+                }
+
+                const html = categories.map(category => `
+                    <div style="background: white; padding: 1rem; margin: 1rem 0; border-radius: 8px;">
+                        <h3>${category.name}</h3>
+                        <p>${category.description || 'No description'}</p>
+                        <p><strong>Slug:</strong> ${category.slug}</p>
+                        <button onclick="loadCategoryPage('${category.slug}')">View Category Page</button>
+                    </div>
+                `).join('');
+
+                container.innerHTML = html;
+            } catch (error) {
+                container.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+            }
+        }
+
+        // Load and display category page
+        async function loadCategoryPage(slug = null) {
+            const container = document.getElementById('category-page');
+            const slugInput = document.getElementById('category-slug-input');
+            const categorySlug = slug || slugInput.value;
+
+            if (!categorySlug) {
+                container.innerHTML = '<div class="error">Please enter a category slug</div>';
+                return;
+            }
+
+            container.innerHTML = '<div class="loading">Loading...</div>';
+
+            try {
+                const category = await apiRequest(`/categories/slug/${categorySlug}`);
+                
+                const postsHtml = category.posts && category.posts.length > 0
+                    ? category.posts.map(post => `
+                        <a href="#" onclick="loadPostPage('${post.slug}'); return false;" class="post-card">
+                            ${post.featuredImageUrl ? `<img src="${post.featuredImageUrl}" alt="${post.title}">` : ''}
+                            <h3>${post.title}</h3>
+                        </a>
+                    `).join('')
+                    : '<p>No posts found in this category.</p>';
+
+                const html = `
+                    <div class="category-header">
+                        <div class="category-content">
+                            <h1 class="category-title">${category.name}</h1>
+                            <p class="category-description">${category.description || ''}</p>
+                        </div>
+                        ${category.featuredImageUrl ? `
+                            <div class="category-image">
+                                <img src="${category.featuredImageUrl}" alt="${category.name}">
+                            </div>
+                        ` : ''}
+                    </div>
+                    <div class="posts-grid">
+                        ${postsHtml}
+                    </div>
+                `;
+
+                container.innerHTML = html;
+            } catch (error) {
+                container.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+            }
+        }
+
+        // Load and display blog post page
+        async function loadPostPage(slug = null) {
+            const container = document.getElementById('post-page');
+            const slugInput = document.getElementById('post-slug-input');
+            const postSlug = slug || slugInput.value;
+
+            if (!postSlug) {
+                container.innerHTML = '<div class="error">Please enter a post slug</div>';
+                return;
+            }
+
+            container.innerHTML = '<div class="loading">Loading...</div>';
+
+            try {
+                const post = await apiRequest(`/posts/slug/${postSlug}`);
+                
+                const html = `
+                    <div class="post-page">
+                        <nav class="breadcrumb">
+                            <a href="#">The Wedding Company</a> / 
+                            <a href="#" onclick="loadCategoryPage('${post.category.slug}'); return false;">${post.category.name}</a> / 
+                            <span>${post.title}</span>
+                        </nav>
+                        <h1 class="post-title">${post.title}</h1>
+                        <div class="category-tag">
+                            <span class="tag">${post.category.name.toUpperCase()}</span>
+                        </div>
+                        ${post.featuredImageUrl ? `
+                            <div class="featured-image">
+                                <img src="${post.featuredImageUrl}" alt="${post.title}">
+                            </div>
+                        ` : ''}
+                        ${post.excerpt ? `<p style="font-size: 1.1rem; color: #666; margin: 1rem 0;">${post.excerpt}</p>` : ''}
+                        <div class="post-content">
+                            ${post.content || '<p>No content available.</p>'}
+                        </div>
+                        <div class="post-meta">
+                            <span>Views: ${post.viewCount}</span>
+                            ${post.publishedAt ? `<span>Published: ${new Date(post.publishedAt).toLocaleDateString()}</span>` : ''}
+                        </div>
+                    </div>
+                `;
+
+                container.innerHTML = html;
+            } catch (error) {
+                container.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+            }
+        }
+
+        // Initialize - load categories on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            // Auto-load categories
+            // loadCategories();
+        });
+    </script>
+</body>
+</html>
+

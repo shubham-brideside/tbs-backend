@@ -80,6 +80,7 @@ public class DealService {
      * @param dealInitRequest the request containing only contact number
      * @return the deal ID (existing or newly created)
      */
+    @Transactional
     @CacheEvict(value = "deals", allEntries = true)
     public Integer initializeDeal(DealInitRequestDto dealInitRequest) {
         // Check if a deal with the same contact number already exists

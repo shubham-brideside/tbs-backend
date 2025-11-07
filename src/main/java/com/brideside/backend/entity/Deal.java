@@ -2,7 +2,6 @@ package com.brideside.backend.entity;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
 import org.hibernate.annotations.CreationTimestamp;
@@ -20,7 +19,7 @@ public class Deal {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
     
-    @Column(name = "user_name", nullable = false, length = 100)
+    @Column(name = "name", nullable = false, length = 100)
     @NotBlank(message = "User name is required")
     private String userName;
     
@@ -41,6 +40,9 @@ public class Deal {
     @Column(name = "budget", precision = 10, scale = 2)
     @PositiveOrZero(message = "Budget must be positive or zero")
     private BigDecimal budget;
+    
+    @Column(name = "deal_value", precision = 10, scale = 2)
+    private BigDecimal value;
     
     @Column(name = "expected_gathering")
     @Positive(message = "Expected gathering must be positive")
@@ -130,6 +132,14 @@ public class Deal {
     
     public void setBudget(BigDecimal budget) {
         this.budget = budget;
+    }
+    
+    public BigDecimal getValue() {
+        return value;
+    }
+    
+    public void setValue(BigDecimal value) {
+        this.value = value;
     }
     
     public Integer getExpectedGathering() {
