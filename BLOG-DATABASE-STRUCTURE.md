@@ -30,6 +30,7 @@ Stores individual blog posts/articles
 - `slug` (VARCHAR(255), NOT NULL, UNIQUE) - URL-friendly identifier
 - `excerpt` (TEXT) - Short description/excerpt
 - `content` (LONGTEXT) - Full post content (HTML)
+- `author_name` (VARCHAR(255)) - Post author display name
 - `featured_image_url` (VARCHAR(500)) - Featured image URL
 - `category_id` (INT, NOT NULL, Foreign Key → blog_categories.id) - Category reference
 - `meta_description` (VARCHAR(500)) - SEO meta description

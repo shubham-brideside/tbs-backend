@@ -217,6 +217,7 @@ public class BlogService {
             category
         );
         
+        post.setAuthorName(request.getAuthorName());
         post.setMetaDescription(request.getMetaDescription());
         post.setMetaKeywords(request.getMetaKeywords());
         post.setRelatedLinks(request.getRelatedLinks());
@@ -377,6 +378,10 @@ public class BlogService {
         if (request.getFeaturedImageUrl() != null) {
             post.setFeaturedImageUrl(request.getFeaturedImageUrl());
         }
+
+        if (request.getAuthorName() != null) {
+            post.setAuthorName(request.getAuthorName());
+        }
         
         if (request.getCategoryId() != null) {
             BlogCategory category = categoryRepository.findById(request.getCategoryId())
@@ -495,6 +500,7 @@ public class BlogService {
             post.getSlug(),
             post.getExcerpt(),
             post.getContent(),
+            post.getAuthorName(),
             post.getFeaturedImageUrl(),
             categoryDto,
             post.getMetaDescription(),

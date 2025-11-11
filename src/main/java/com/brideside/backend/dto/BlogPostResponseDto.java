@@ -10,6 +10,9 @@ public class BlogPostResponseDto {
     private String excerpt;
     private String content;
     
+    @JsonProperty("author_name")
+    private String authorName;
+    
     @JsonProperty("featured_image_url")
     private String featuredImageUrl;
     
@@ -44,7 +47,7 @@ public class BlogPostResponseDto {
     
     // Constructor
     public BlogPostResponseDto(Integer id, String title, String slug, String excerpt, String content,
-                              String featuredImageUrl, CategoryDto category, String metaDescription,
+                              String authorName, String featuredImageUrl, CategoryDto category, String metaDescription,
                               String metaKeywords, Boolean isPublished, String publishedAt,
                               Integer viewCount, String relatedLinks, String createdAt, String updatedAt) {
         this.id = id;
@@ -52,6 +55,7 @@ public class BlogPostResponseDto {
         this.slug = slug;
         this.excerpt = excerpt;
         this.content = content;
+        this.authorName = authorName;
         this.featuredImageUrl = featuredImageUrl;
         this.category = category;
         this.metaDescription = metaDescription;
@@ -103,6 +107,14 @@ public class BlogPostResponseDto {
     
     public void setContent(String content) {
         this.content = content;
+    }
+    
+    public String getAuthorName() {
+        return authorName;
+    }
+    
+    public void setAuthorName(String authorName) {
+        this.authorName = authorName;
     }
     
     public String getFeaturedImageUrl() {

@@ -81,7 +81,7 @@ public class WhatsAppService {
         template.put("name", "tbs_confirmation_message");
         
         Map<String, String> language = new HashMap<>();
-        language.put("code", "en_US");  // WhatsApp API requires full locale code
+        language.put("code", "en");  // WhatsApp API requires full locale code
         template.put("language", language);
         
         body.put("template", template);

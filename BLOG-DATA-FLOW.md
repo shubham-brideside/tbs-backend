@@ -27,6 +27,7 @@ title              VARCHAR(255) NOT NULL
 slug               VARCHAR(255) NOT NULL UNIQUE
 excerpt            TEXT
 content            LONGTEXT
+author_name        VARCHAR(255)
 featured_image_url VARCHAR(500)
 category_id        INT NOT NULL (Foreign Key → blog_categories.id)
 meta_description   VARCHAR(500)

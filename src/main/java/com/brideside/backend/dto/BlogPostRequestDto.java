@@ -1,5 +1,6 @@
 package com.brideside.backend.dto;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -17,6 +18,10 @@ public class BlogPostRequestDto {
     
     @JsonProperty("featured_image_url")
     private String featuredImageUrl;
+
+    @JsonProperty("author_name")
+    @JsonAlias({"authorName"})
+    private String authorName;
     
     @NotNull(message = "Category ID is required")
     @JsonProperty("category_id")
@@ -39,13 +44,14 @@ public class BlogPostRequestDto {
     
     // Constructor
     public BlogPostRequestDto(String title, String slug, String excerpt, String content,
-                             String featuredImageUrl, Integer categoryId, String metaDescription,
+                             String featuredImageUrl, String authorName, Integer categoryId, String metaDescription,
                              String metaKeywords, Boolean isPublished, String relatedLinks) {
         this.title = title;
         this.slug = slug;
         this.excerpt = excerpt;
         this.content = content;
         this.featuredImageUrl = featuredImageUrl;
+        this.authorName = authorName;
         this.categoryId = categoryId;
         this.metaDescription = metaDescription;
         this.metaKeywords = metaKeywords;
@@ -92,6 +98,14 @@ public class BlogPostRequestDto {
     
     public void setFeaturedImageUrl(String featuredImageUrl) {
         this.featuredImageUrl = featuredImageUrl;
+    }
+
+    public String getAuthorName() {
+        return authorName;
+    }
+
+    public void setAuthorName(String authorName) {
+        this.authorName = authorName;
     }
     
     public Integer getCategoryId() {
@@ -140,6 +154,7 @@ public class BlogPostRequestDto {
                 "title='" + title + '\'' +
                 ", slug='" + slug + '\'' +
                 ", excerpt='" + excerpt + '\'' +
+                ", authorName='" + authorName + '\'' +
                 ", categoryId=" + categoryId +
                 ", isPublished=" + isPublished +
                 '}';

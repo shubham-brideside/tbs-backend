@@ -29,6 +29,9 @@ public class BlogPost {
     
     @Column(name = "content", columnDefinition = "LONGTEXT")
     private String content;
+
+    @Column(name = "author_name", length = 255)
+    private String authorName;
     
     @Column(name = "featured_image_url", length = 500)
     private String featuredImageUrl;
@@ -68,7 +71,7 @@ public class BlogPost {
     public BlogPost() {}
     
     // Constructor
-    public BlogPost(String title, String slug, String excerpt, String content, 
+    public BlogPost(String title, String slug, String excerpt, String content,
                    String featuredImageUrl, BlogCategory category) {
         this.title = title;
         this.slug = slug;
@@ -119,6 +122,14 @@ public class BlogPost {
     
     public void setContent(String content) {
         this.content = content;
+    }
+
+    public String getAuthorName() {
+        return authorName;
+    }
+
+    public void setAuthorName(String authorName) {
+        this.authorName = authorName;
     }
     
     public String getFeaturedImageUrl() {
@@ -208,6 +219,7 @@ public class BlogPost {
                 ", title='" + title + '\'' +
                 ", slug='" + slug + '\'' +
                 ", excerpt='" + excerpt + '\'' +
+                ", authorName='" + authorName + '\'' +
                 ", category=" + (category != null ? category.getName() : "null") +
                 ", isPublished=" + isPublished +
                 ", viewCount=" + viewCount +
