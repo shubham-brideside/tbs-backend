@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS deals (
     event_date DATE,
     venue VARCHAR(255),
     budget DECIMAL(10,2),
-    deal_value DECIMAL(10,2) DEFAULT NULL,
+    value DECIMAL(10,2) DEFAULT NULL,
     expected_gathering INT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
