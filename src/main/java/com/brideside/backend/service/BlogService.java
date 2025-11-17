@@ -527,6 +527,30 @@ public class BlogService {
      */
     private BlogCategoryResponseDto convertToCategoryResponseDto(BlogCategory category, 
                                                                 List<BlogCategoryResponseDto.BlogPostCardDto> posts) {
+        // Handle potential null timestamps from existing data
+        String createdAtStr = null;
+        String updatedAtStr = null;
+        try {
+            if (category.getCreatedAt() != null) {
+                createdAtStr = category.getCreatedAt().format(DATETIME_FORMATTER);
+            } else {
+                logger.warn("Category {} has null createdAt timestamp", category.getId());
+                createdAtStr = LocalDateTime.now(ZoneId.of("Asia/Kolkata")).format(DATETIME_FORMATTER);
+            }
+            if (category.getUpdatedAt() != null) {
+                updatedAtStr = category.getUpdatedAt().format(DATETIME_FORMATTER);
+            } else {
+                logger.warn("Category {} has null updatedAt timestamp", category.getId());
+                updatedAtStr = LocalDateTime.now(ZoneId.of("Asia/Kolkata")).format(DATETIME_FORMATTER);
+            }
+        } catch (Exception e) {
+            logger.error("Error formatting timestamps for category {}", category.getId(), e);
+            // Use current time as fallback
+            LocalDateTime now = LocalDateTime.now(ZoneId.of("Asia/Kolkata"));
+            createdAtStr = now.format(DATETIME_FORMATTER);
+            updatedAtStr = now.format(DATETIME_FORMATTER);
+        }
+        
         return new BlogCategoryResponseDto(
             category.getId(),
             category.getName(),
@@ -534,8 +558,8 @@ public class BlogService {
             category.getDescription(),
             category.getFeaturedImageUrl(),
             category.getIsActive(),
-            category.getCreatedAt() != null ? category.getCreatedAt().format(DATETIME_FORMATTER) : null,
-            category.getUpdatedAt() != null ? category.getUpdatedAt().format(DATETIME_FORMATTER) : null,
+            createdAtStr,
+            updatedAtStr,
             posts
         );
     }
@@ -565,6 +589,34 @@ public class BlogService {
             );
         }
         
+        // Handle potential null timestamps from existing data
+        String createdAtStr = null;
+        String updatedAtStr = null;
+        String publishedAtStr = null;
+        try {
+            if (post.getCreatedAt() != null) {
+                createdAtStr = post.getCreatedAt().format(DATETIME_FORMATTER);
+            } else {
+                logger.warn("Post {} has null createdAt timestamp", post.getId());
+                createdAtStr = LocalDateTime.now(ZoneId.of("Asia/Kolkata")).format(DATETIME_FORMATTER);
+            }
+            if (post.getUpdatedAt() != null) {
+                updatedAtStr = post.getUpdatedAt().format(DATETIME_FORMATTER);
+            } else {
+                logger.warn("Post {} has null updatedAt timestamp", post.getId());
+                updatedAtStr = LocalDateTime.now(ZoneId.of("Asia/Kolkata")).format(DATETIME_FORMATTER);
+            }
+            if (post.getPublishedAt() != null) {
+                publishedAtStr = post.getPublishedAt().format(DATETIME_FORMATTER);
+            }
+        } catch (Exception e) {
+            logger.error("Error formatting timestamps for post {}", post.getId(), e);
+            // Use current time as fallback
+            LocalDateTime now = LocalDateTime.now(ZoneId.of("Asia/Kolkata"));
+            createdAtStr = now.format(DATETIME_FORMATTER);
+            updatedAtStr = now.format(DATETIME_FORMATTER);
+        }
+        
         return new BlogPostResponseDto(
             post.getId(),
             post.getTitle(),
@@ -577,11 +629,11 @@ public class BlogService {
             post.getMetaDescription(),
             post.getMetaKeywords(),
             post.getIsPublished(),
-            post.getPublishedAt() != null ? post.getPublishedAt().format(DATETIME_FORMATTER) : null,
+            publishedAtStr,
             post.getViewCount(),
             post.getRelatedLinks(),
-            post.getCreatedAt() != null ? post.getCreatedAt().format(DATETIME_FORMATTER) : null,
-            post.getUpdatedAt() != null ? post.getUpdatedAt().format(DATETIME_FORMATTER) : null
+            createdAtStr,
+            updatedAtStr
         );
     }
 }

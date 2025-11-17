@@ -39,15 +39,16 @@ public class DatabaseConfig {
         config.setPassword(properties.getPassword());
         config.setDriverClassName(properties.getDriverClassName());
         
-        // Set timezone and disable autocommit on every connection
-        // This ensures MySQL TIMESTAMP columns use IST timezone
-        // Disabling autocommit allows Hibernate to manage transactions properly
-        String connectionInitSql = "SET time_zone = '+05:30'; SET autocommit = 0";
+        // Set timezone on every connection - this ensures MySQL TIMESTAMP columns use IST timezone
+        String connectionInitSql = "SET time_zone = '+05:30'";
         config.setConnectionInitSql(connectionInitSql);
         logger.info("Connection Init SQL: {}", connectionInitSql);
         
-        // Ensure HikariCP doesn't auto-commit
+        // Disable autocommit at the connection pool level
+        // This allows Hibernate to manage transactions properly
+        // Hibernate's provider_disables_autocommit: true will also ensure autocommit is disabled
         config.setAutoCommit(false);
+        logger.info("HikariCP autocommit disabled: {}", config.isAutoCommit());
         
         // Copy HikariCP settings from properties
         config.setMaximumPoolSize(20);
