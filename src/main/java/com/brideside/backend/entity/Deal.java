@@ -41,7 +41,7 @@ public class Deal {
     @PositiveOrZero(message = "Budget must be positive or zero")
     private BigDecimal budget;
     
-    @Column(name = "deal_value", precision = 10, scale = 2)
+    @Column(name = "value", precision = 10, scale = 2)
     private BigDecimal value;
     
     @Column(name = "expected_gathering")
