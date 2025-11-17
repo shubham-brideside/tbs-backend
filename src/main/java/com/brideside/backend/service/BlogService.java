@@ -81,10 +81,45 @@ public class BlogService {
     @Transactional(readOnly = true)
     @Cacheable(value = "blogCategories", key = "'all_active'")
     public List<BlogCategoryResponseDto> getAllActiveCategories() {
-        List<BlogCategory> categories = categoryRepository.findByIsActiveTrue();
-        return categories.stream()
-            .map(category -> convertToCategoryResponseDto(category, null))
-            .collect(Collectors.toList());
+        try {
+            logger.info("getAllActiveCategories() - Starting to fetch active categories from database");
+            List<BlogCategory> categories = categoryRepository.findByIsActiveTrue();
+            logger.info("getAllActiveCategories() - Found {} active categories in database", categories.size());
+            
+            if (categories.isEmpty()) {
+                logger.warn("getAllActiveCategories() - No active categories found in database");
+                return List.of();
+            }
+            
+            logger.debug("getAllActiveCategories() - Converting {} categories to DTOs", categories.size());
+            List<BlogCategoryResponseDto> result = categories.stream()
+                .map(category -> {
+                    try {
+                        logger.debug("getAllActiveCategories() - Converting category ID: {}, Name: {}", 
+                                    category.getId(), category.getName());
+                        BlogCategoryResponseDto dto = convertToCategoryResponseDto(category, null);
+                        logger.debug("getAllActiveCategories() - Successfully converted category ID: {}", category.getId());
+                        return dto;
+                    } catch (Exception e) {
+                        logger.error("getAllActiveCategories() - Error converting category ID: {}, Name: {} to DTO", 
+                                    category.getId(), category.getName(), e);
+                        throw e;
+                    }
+                })
+                .collect(Collectors.toList());
+            
+            logger.info("getAllActiveCategories() - Successfully converted {} categories to DTOs", result.size());
+            return result;
+        } catch (Exception e) {
+            logger.error("getAllActiveCategories() - Error fetching active categories", e);
+            logger.error("getAllActiveCategories() - Exception type: {}, Message: {}", 
+                        e.getClass().getName(), e.getMessage());
+            if (e.getCause() != null) {
+                logger.error("getAllActiveCategories() - Cause: {}, Cause message: {}", 
+                            e.getCause().getClass().getName(), e.getCause().getMessage());
+            }
+            throw e;
+        }
     }
     
     /**
@@ -240,10 +275,45 @@ public class BlogService {
     @Transactional(readOnly = true)
     @Cacheable(value = "blogPosts", key = "'all_published'")
     public List<BlogPostResponseDto> getAllPublishedPosts() {
-        List<BlogPost> posts = postRepository.findByIsPublishedTrueOrderByPublishedAtDesc();
-        return posts.stream()
-            .map(this::convertToPostResponseDto)
-            .collect(Collectors.toList());
+        try {
+            logger.info("getAllPublishedPosts() - Starting to fetch published posts from database");
+            List<BlogPost> posts = postRepository.findByIsPublishedTrueOrderByPublishedAtDesc();
+            logger.info("getAllPublishedPosts() - Found {} published posts in database", posts.size());
+            
+            if (posts.isEmpty()) {
+                logger.warn("getAllPublishedPosts() - No published posts found in database");
+                return List.of();
+            }
+            
+            logger.debug("getAllPublishedPosts() - Converting {} posts to DTOs", posts.size());
+            List<BlogPostResponseDto> result = posts.stream()
+                .map(post -> {
+                    try {
+                        logger.debug("getAllPublishedPosts() - Converting post ID: {}, Title: {}", 
+                                    post.getId(), post.getTitle());
+                        BlogPostResponseDto dto = convertToPostResponseDto(post);
+                        logger.debug("getAllPublishedPosts() - Successfully converted post ID: {}", post.getId());
+                        return dto;
+                    } catch (Exception e) {
+                        logger.error("getAllPublishedPosts() - Error converting post ID: {}, Title: {} to DTO", 
+                                    post.getId(), post.getTitle(), e);
+                        throw e;
+                    }
+                })
+                .collect(Collectors.toList());
+            
+            logger.info("getAllPublishedPosts() - Successfully converted {} posts to DTOs", result.size());
+            return result;
+        } catch (Exception e) {
+            logger.error("getAllPublishedPosts() - Error fetching published posts", e);
+            logger.error("getAllPublishedPosts() - Exception type: {}, Message: {}", 
+                        e.getClass().getName(), e.getMessage());
+            if (e.getCause() != null) {
+                logger.error("getAllPublishedPosts() - Cause: {}, Cause message: {}", 
+                            e.getCause().getClass().getName(), e.getCause().getMessage());
+            }
+            throw e;
+        }
     }
     
     /**

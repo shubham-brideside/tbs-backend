@@ -14,6 +14,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -60,13 +62,24 @@ public class BlogController {
             @ApiResponse(responseCode = "500", description = "Internal server error")
     })
     @GetMapping("/categories")
-    public ResponseEntity<List<BlogCategoryResponseDto>> getAllActiveCategories() {
+    public ResponseEntity<?> getAllActiveCategories() {
         try {
+            logger.info("GET /api/blog/categories - Request received");
             List<BlogCategoryResponseDto> categories = blogService.getAllActiveCategories();
+            logger.info("GET /api/blog/categories - Successfully retrieved {} categories", categories.size());
             return ResponseEntity.ok(categories);
         } catch (Exception e) {
-            logger.error("Error fetching active categories", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+            logger.error("GET /api/blog/categories - Error fetching active categories", e);
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Error fetching active categories");
+            errorResponse.put("message", e.getMessage());
+            errorResponse.put("exception", e.getClass().getSimpleName());
+            if (e.getCause() != null) {
+                errorResponse.put("cause", e.getCause().getMessage());
+            }
+            // Include stack trace in response for debugging (remove in production if needed)
+            errorResponse.put("stackTrace", getStackTrace(e));
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
     }
     
@@ -79,12 +92,23 @@ public class BlogController {
             @ApiResponse(responseCode = "500", description = "Internal server error")
     })
     @GetMapping("/categories/all")
-    public ResponseEntity<List<BlogCategoryResponseDto>> getAllCategories() {
+    public ResponseEntity<?> getAllCategories() {
         try {
+            logger.info("GET /api/blog/categories/all - Request received");
             List<BlogCategoryResponseDto> categories = blogService.getAllCategories();
+            logger.info("GET /api/blog/categories/all - Successfully retrieved {} categories", categories.size());
             return ResponseEntity.ok(categories);
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+            logger.error("GET /api/blog/categories/all - Error fetching all categories", e);
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Error fetching all categories");
+            errorResponse.put("message", e.getMessage());
+            errorResponse.put("exception", e.getClass().getSimpleName());
+            if (e.getCause() != null) {
+                errorResponse.put("cause", e.getCause().getMessage());
+            }
+            errorResponse.put("stackTrace", getStackTrace(e));
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
     }
     
@@ -233,13 +257,24 @@ public class BlogController {
             @ApiResponse(responseCode = "500", description = "Internal server error")
     })
     @GetMapping("/posts")
-    public ResponseEntity<List<BlogPostResponseDto>> getAllPublishedPosts() {
+    public ResponseEntity<?> getAllPublishedPosts() {
         try {
+            logger.info("GET /api/blog/posts - Request received");
             List<BlogPostResponseDto> posts = blogService.getAllPublishedPosts();
+            logger.info("GET /api/blog/posts - Successfully retrieved {} posts", posts.size());
             return ResponseEntity.ok(posts);
         } catch (Exception e) {
-            logger.error("Error fetching published posts", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+            logger.error("GET /api/blog/posts - Error fetching published posts", e);
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Error fetching published posts");
+            errorResponse.put("message", e.getMessage());
+            errorResponse.put("exception", e.getClass().getSimpleName());
+            if (e.getCause() != null) {
+                errorResponse.put("cause", e.getCause().getMessage());
+            }
+            // Include stack trace in response for debugging (remove in production if needed)
+            errorResponse.put("stackTrace", getStackTrace(e));
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
     }
     
@@ -425,6 +460,16 @@ public class BlogController {
             errorResponse.put("error", "Error deleting post: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
+    }
+    
+    /**
+     * Helper method to convert exception stack trace to string
+     */
+    private String getStackTrace(Exception e) {
+        StringWriter sw = new StringWriter();
+        PrintWriter pw = new PrintWriter(sw);
+        e.printStackTrace(pw);
+        return sw.toString();
     }
 }
 

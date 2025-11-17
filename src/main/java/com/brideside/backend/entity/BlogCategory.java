@@ -2,8 +2,6 @@ package com.brideside.backend.entity;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -34,11 +32,9 @@ public class BlogCategory {
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
     
-    @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
     
-    @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
     
