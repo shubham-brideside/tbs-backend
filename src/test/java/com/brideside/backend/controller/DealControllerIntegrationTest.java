@@ -19,6 +19,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -40,8 +41,13 @@ public class DealControllerIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        // Don't call deleteAll() here as it might fail if table doesn't exist
-        // The table will be created by Hibernate on first use
+        // Clean up any existing data before each test to ensure isolation
+        try {
+            dealRepository.deleteAll();
+            dealRepository.flush();
+        } catch (Exception e) {
+            // Ignore if table doesn't exist yet - it will be created by Hibernate
+        }
         mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
     }
 
@@ -59,14 +65,11 @@ public class DealControllerIntegrationTest {
 
         // Verify that separate entries were created
         List<Deal> deals = dealRepository.findAll();
-        assert deals.size() == 2;
-        assert deals.get(0).getUserName().equals("Shubham");
-        assert deals.get(1).getUserName().equals("Shubham");
-        assert deals.get(0).getCategory().equals("Photography");
-        assert deals.get(1).getCategory().equals("Makeup");
-        
-        // Clean up after test
-        dealRepository.deleteAll();
+        assertEquals(2, deals.size(), "Should have exactly 2 deals");
+        assertEquals("Shubham", deals.get(0).getUserName());
+        assertEquals("Shubham", deals.get(1).getUserName());
+        assertEquals("Photography", deals.get(0).getCategory());
+        assertEquals("Makeup", deals.get(1).getCategory());
     }
 
     @Test
@@ -91,9 +94,6 @@ public class DealControllerIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray())
                 .andExpect(jsonPath("$.length()").value(2));
-        
-        // Clean up after test
-        dealRepository.deleteAll();
     }
 
     @Test
@@ -106,9 +106,6 @@ public class DealControllerIntegrationTest {
                 .andExpect(jsonPath("$").isArray())
                 .andExpect(jsonPath("$.length()").value(2))
                 .andExpect(jsonPath("$[0].userName").value("Shubham"));
-        
-        // Clean up after test
-        dealRepository.deleteAll();
     }
 
     @Test
@@ -121,9 +118,6 @@ public class DealControllerIntegrationTest {
                 .andExpect(jsonPath("$").isArray())
                 .andExpect(jsonPath("$.length()").value(2))
                 .andExpect(jsonPath("$[0].contactNumber").value("9304683214"));
-        
-        // Clean up after test
-        dealRepository.deleteAll();
     }
 
     @Test
@@ -136,9 +130,6 @@ public class DealControllerIntegrationTest {
                 .andExpect(jsonPath("$").isArray())
                 .andExpect(jsonPath("$.length()").value(1))
                 .andExpect(jsonPath("$[0].category").value("Photography"));
-        
-        // Clean up after test
-        dealRepository.deleteAll();
     }
 
     private DealRequestDto createSampleDealRequest() {
