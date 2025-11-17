@@ -7,6 +7,8 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,6 +22,8 @@ import java.util.Map;
 @RequestMapping("/api/blog")
 @Tag(name = "Blog Management", description = "APIs for managing blog categories and posts")
 public class BlogController {
+    
+    private static final Logger logger = LoggerFactory.getLogger(BlogController.class);
     
     @Autowired
     private BlogService blogService;
@@ -61,6 +65,7 @@ public class BlogController {
             List<BlogCategoryResponseDto> categories = blogService.getAllActiveCategories();
             return ResponseEntity.ok(categories);
         } catch (Exception e) {
+            logger.error("Error fetching active categories", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -233,6 +238,7 @@ public class BlogController {
             List<BlogPostResponseDto> posts = blogService.getAllPublishedPosts();
             return ResponseEntity.ok(posts);
         } catch (Exception e) {
+            logger.error("Error fetching published posts", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }

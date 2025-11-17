@@ -10,6 +10,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 
 @Entity
 @Table(name = "deals")
@@ -55,6 +56,24 @@ public class Deal {
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
+    
+    @PrePersist
+    protected void onCreate() {
+        // Explicitly set timestamps in IST timezone to ensure correct storage
+        LocalDateTime now = LocalDateTime.now(ZoneId.of("Asia/Kolkata"));
+        if (createdAt == null) {
+            createdAt = now;
+        }
+        if (updatedAt == null) {
+            updatedAt = now;
+        }
+    }
+    
+    @PreUpdate
+    protected void onUpdate() {
+        // Explicitly set updated timestamp in IST timezone
+        updatedAt = LocalDateTime.now(ZoneId.of("Asia/Kolkata"));
+    }
     
     @Column(name = "pipedrive_deal_id", length = 100)
     private String pipedriveDealId;

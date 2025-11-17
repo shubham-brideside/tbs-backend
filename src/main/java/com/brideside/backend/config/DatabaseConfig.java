@@ -41,7 +41,8 @@ public class DatabaseConfig {
         
         // Set timezone on every connection - use named timezone for better compatibility
         // This ensures MySQL TIMESTAMP columns use IST timezone
-        String connectionInitSql = "SET time_zone = 'Asia/Kolkata'";
+        // Try named timezone first, fallback to offset if needed
+        String connectionInitSql = "SET time_zone = '+05:30'";
         config.setConnectionInitSql(connectionInitSql);
         logger.info("Connection Init SQL: {}", connectionInitSql);
         

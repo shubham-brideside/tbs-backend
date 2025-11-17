@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
@@ -224,7 +225,7 @@ public class BlogService {
         
         if (request.getIsPublished() != null && request.getIsPublished()) {
             post.setIsPublished(true);
-            post.setPublishedAt(LocalDateTime.now());
+            post.setPublishedAt(LocalDateTime.now(ZoneId.of("Asia/Kolkata")));
         }
         
         BlogPost savedPost = postRepository.save(post);
@@ -408,7 +409,7 @@ public class BlogService {
             
             if (request.getIsPublished() && !wasPublished) {
                 // Post is being published for the first time
-                post.setPublishedAt(LocalDateTime.now());
+                post.setPublishedAt(LocalDateTime.now(ZoneId.of("Asia/Kolkata")));
             } else if (!request.getIsPublished() && wasPublished) {
                 // Post is being unpublished
                 post.setPublishedAt(null);
