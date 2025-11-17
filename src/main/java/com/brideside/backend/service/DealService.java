@@ -16,6 +16,7 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
@@ -109,11 +110,13 @@ public class DealService {
                     if (contact == null || contact.getPipedriveContactId() == null) {
                         // Create new contact in Pipedrive
                         contact = pipedriveService.createPerson("TBS", existingDeal.getContactNumber());
-                        existingDeal.setContactId(contact.getId());
+                        if (contact != null) {
+                            existingDeal.setContactId(contact.getId());
+                        }
                     }
                     
-                    // Create deal in Pipedrive if missing
-                    if (existingDeal.getPipedriveDealId() == null) {
+                    // Create deal in Pipedrive if missing (only if we have a valid contact)
+                    if (existingDeal.getPipedriveDealId() == null && contact != null && contact.getPipedriveContactId() != null) {
                         String pipedriveDealId = pipedriveService.createDeal(contact, "TBS Deal", 0);
                         existingDeal.setPipedriveDealId(pipedriveDealId);
                         logger.info("Successfully created Pipedrive deal {} for existing deal {}", pipedriveDealId, existingDeal.getId());
@@ -146,6 +149,8 @@ public class DealService {
                     null, // Budget - will be updated later
                     null  // Expected gathering - will be updated later
                 );
+                // Set value to 0 (required NOT NULL field)
+                deal.setValue(BigDecimal.ZERO);
                 // Store the contact ID and Pipedrive deal ID
                 deal.setContactId(contact.getId());
                 deal.setPipedriveDealId(pipedriveDealId);
@@ -167,6 +172,8 @@ public class DealService {
                     null, // Budget - will be updated later
                     null  // Expected gathering - will be updated later
                 );
+                // Set value to 0 (required NOT NULL field)
+                deal.setValue(BigDecimal.ZERO);
                 
                 Deal savedDeal = dealRepository.save(deal);
                 logger.warn("Deal created locally (ID: {}) without Pipedrive integration due to error", savedDeal.getId());

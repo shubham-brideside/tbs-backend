@@ -41,8 +41,8 @@ public class Deal {
     @PositiveOrZero(message = "Budget must be positive or zero")
     private BigDecimal budget;
     
-    @Column(name = "value", precision = 10, scale = 2)
-    private BigDecimal value;
+    @Column(name = "\"value\"", nullable = false, precision = 12, scale = 2)
+    private BigDecimal value = BigDecimal.ZERO;
     
     @Column(name = "expected_gathering")
     @Positive(message = "Expected gathering must be positive")
