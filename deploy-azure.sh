@@ -162,6 +162,8 @@ configure_app_settings() {
             DOCKER_REGISTRY_SERVER_PASSWORD="$REGISTRY_PASSWORD" \
             WEBSITES_ENABLE_APP_SERVICE_STORAGE="false" \
             SPRING_PROFILES_ACTIVE="azure" \
+            TZ="Asia/Kolkata" \
+            JAVA_OPTS="-Duser.timezone=Asia/Kolkata" \
             DB_HOST="thebrideside.mysql.database.azure.com:3306" \
             DB_DATABASE="thebrideside" \
             DB_USER="thebrideside" \

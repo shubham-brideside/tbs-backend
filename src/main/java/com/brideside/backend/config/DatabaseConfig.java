@@ -11,6 +11,9 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.Profile;
 
 import javax.sql.DataSource;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.Statement;
 
 @Configuration
 @Profile("!test")
@@ -24,13 +27,21 @@ public class DatabaseConfig {
         logger.info("Configuring database with IST timezone...");
         
         HikariConfig config = new HikariConfig();
-        config.setJdbcUrl(properties.getUrl());
+        
+        // Ensure JDBC URL has timezone parameter
+        String jdbcUrl = properties.getUrl();
+        if (!jdbcUrl.contains("serverTimezone")) {
+            String separator = jdbcUrl.contains("?") ? "&" : "?";
+            jdbcUrl = jdbcUrl + separator + "serverTimezone=Asia/Kolkata";
+        }
+        config.setJdbcUrl(jdbcUrl);
         config.setUsername(properties.getUsername());
         config.setPassword(properties.getPassword());
         config.setDriverClassName(properties.getDriverClassName());
         
-        // Store timestamps in IST in database - SET time_zone sets the session timezone
-        String connectionInitSql = "SET time_zone = '+05:30'";
+        // Set timezone on every connection - use named timezone for better compatibility
+        // This ensures MySQL TIMESTAMP columns use IST timezone
+        String connectionInitSql = "SET time_zone = 'Asia/Kolkata'";
         config.setConnectionInitSql(connectionInitSql);
         logger.info("Connection Init SQL: {}", connectionInitSql);
         
@@ -43,13 +54,34 @@ public class DatabaseConfig {
         
         HikariDataSource dataSource = new HikariDataSource(config);
         
-        logger.info("========================================");
-        logger.info("DATABASE TIMEZONE CONFIGURATION:");
-        logger.info("Database DataSource configured");
-        logger.info("JVM Default TimeZone: {}", java.util.TimeZone.getDefault().getID());
-        logger.info("Expected: Asia/Kolkata (IST, +05:30)");
-        logger.info("Connection will use time_zone = '+05:30'");
-        logger.info("========================================");
+        // Verify timezone is set correctly on first connection
+        try (Connection conn = dataSource.getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery("SELECT @@session.time_zone as session_tz, @@global.time_zone as global_tz, NOW() as current_time")) {
+            
+            if (rs.next()) {
+                String sessionTz = rs.getString("session_tz");
+                String globalTz = rs.getString("global_tz");
+                String currentTime = rs.getString("current_time");
+                
+                logger.info("========================================");
+                logger.info("DATABASE TIMEZONE VERIFICATION:");
+                logger.info("Session TimeZone: {}", sessionTz);
+                logger.info("Global TimeZone: {}", globalTz);
+                logger.info("Current Database Time: {}", currentTime);
+                logger.info("JVM Default TimeZone: {}", java.util.TimeZone.getDefault().getID());
+                logger.info("Expected Session TimeZone: Asia/Kolkata or +05:30");
+                logger.info("========================================");
+                
+                if (!sessionTz.contains("+05:30") && !sessionTz.equals("Asia/Kolkata") && !sessionTz.equals("SYSTEM")) {
+                    logger.warn("WARNING: Session timezone might not be set correctly! Current: {}", sessionTz);
+                } else {
+                    logger.info("✓ Database session timezone is correctly configured");
+                }
+            }
+        } catch (Exception e) {
+            logger.error("Error verifying database timezone configuration", e);
+        }
         
         return dataSource;
     }

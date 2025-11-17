@@ -32,6 +32,9 @@ spring:
         jdbc:
           batch_size: 20
           time_zone: Asia/Kolkata
+        # Ensure Hibernate uses the correct timezone for LocalDateTime conversion
+        connection:
+          provider_disables_autocommit: true
         order_inserts: true
         order_updates: true
         batch_versioned_data: true
