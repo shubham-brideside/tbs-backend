@@ -9,6 +9,8 @@ spring:
     username: sa
     password: 
     hikari:
+      # Don't set connection-init-sql for H2 (it doesn't support MySQL SET time_zone syntax)
+      connection-init-sql: ""
       maximum-pool-size: 5
       minimum-idle: 1
   
