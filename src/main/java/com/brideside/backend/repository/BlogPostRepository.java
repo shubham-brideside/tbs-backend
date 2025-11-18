@@ -67,7 +67,7 @@ public interface BlogPostRepository extends JpaRepository<BlogPost, Integer> {
      * Increment view count
      * @param postId the post ID
      */
-    @Modifying
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("UPDATE BlogPost p SET p.viewCount = p.viewCount + 1 WHERE p.id = :postId")
     void incrementViewCount(@Param("postId") Integer postId);
 }

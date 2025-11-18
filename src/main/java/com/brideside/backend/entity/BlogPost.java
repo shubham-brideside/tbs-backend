@@ -1,11 +1,15 @@
 package com.brideside.backend.entity;
 
+import com.brideside.backend.converter.JsonListStringConverter;
+import com.brideside.backend.converter.JsonListTaggedPersonConverter;
+import com.brideside.backend.dto.TaggedPerson;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.List;
 
 @Entity
 @Table(name = "blog_posts")
@@ -57,6 +61,14 @@ public class BlogPost {
     
     @Column(name = "related_links", columnDefinition = "TEXT")
     private String relatedLinks; // JSON string for related links
+    
+    @Column(name = "related_blogs_urls", columnDefinition = "JSON")
+    @Convert(converter = JsonListStringConverter.class)
+    private List<String> relatedBlogsUrls;
+    
+    @Column(name = "tagged_people", columnDefinition = "JSON")
+    @Convert(converter = JsonListTaggedPersonConverter.class)
+    private List<TaggedPerson> taggedPeople;
     
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -209,6 +221,22 @@ public class BlogPost {
     
     public void setRelatedLinks(String relatedLinks) {
         this.relatedLinks = relatedLinks;
+    }
+    
+    public List<String> getRelatedBlogsUrls() {
+        return relatedBlogsUrls;
+    }
+    
+    public void setRelatedBlogsUrls(List<String> relatedBlogsUrls) {
+        this.relatedBlogsUrls = relatedBlogsUrls;
+    }
+    
+    public List<TaggedPerson> getTaggedPeople() {
+        return taggedPeople;
+    }
+    
+    public void setTaggedPeople(List<TaggedPerson> taggedPeople) {
+        this.taggedPeople = taggedPeople;
     }
     
     public LocalDateTime getCreatedAt() {

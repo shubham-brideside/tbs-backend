@@ -2,8 +2,12 @@ package com.brideside.backend.dto;
 
 import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import org.hibernate.validator.constraints.URL;
+
+import java.util.List;
 
 public class BlogPostRequestDto {
     
@@ -38,6 +42,14 @@ public class BlogPostRequestDto {
     
     @JsonProperty("related_links")
     private String relatedLinks;
+    
+    @JsonProperty("related_blogs_urls")
+    @Valid
+    private List<@URL String> relatedBlogsUrls;
+    
+    @JsonProperty("tagged_people")
+    @Valid
+    private List<@Valid TaggedPerson> taggedPeople;
     
     // Default constructor
     public BlogPostRequestDto() {}
@@ -146,6 +158,22 @@ public class BlogPostRequestDto {
     
     public void setRelatedLinks(String relatedLinks) {
         this.relatedLinks = relatedLinks;
+    }
+    
+    public List<String> getRelatedBlogsUrls() {
+        return relatedBlogsUrls;
+    }
+    
+    public void setRelatedBlogsUrls(List<String> relatedBlogsUrls) {
+        this.relatedBlogsUrls = relatedBlogsUrls;
+    }
+    
+    public List<TaggedPerson> getTaggedPeople() {
+        return taggedPeople;
+    }
+    
+    public void setTaggedPeople(List<TaggedPerson> taggedPeople) {
+        this.taggedPeople = taggedPeople;
     }
     
     @Override

@@ -2,6 +2,8 @@ package com.brideside.backend.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import java.util.List;
+
 public class BlogPostResponseDto {
     
     private Integer id;
@@ -36,6 +38,12 @@ public class BlogPostResponseDto {
     @JsonProperty("related_links")
     private String relatedLinks;
     
+    @JsonProperty("related_blogs_urls")
+    private List<String> relatedBlogsUrls;
+    
+    @JsonProperty("tagged_people")
+    private List<TaggedPerson> taggedPeople;
+    
     @JsonProperty("created_at")
     private String createdAt;
     
@@ -49,7 +57,8 @@ public class BlogPostResponseDto {
     public BlogPostResponseDto(Integer id, String title, String slug, String excerpt, String content,
                               String authorName, String featuredImageUrl, CategoryDto category, String metaDescription,
                               String metaKeywords, Boolean isPublished, String publishedAt,
-                              Integer viewCount, String relatedLinks, String createdAt, String updatedAt) {
+                              Integer viewCount, String relatedLinks, List<String> relatedBlogsUrls,
+                              List<TaggedPerson> taggedPeople, String createdAt, String updatedAt) {
         this.id = id;
         this.title = title;
         this.slug = slug;
@@ -64,6 +73,8 @@ public class BlogPostResponseDto {
         this.publishedAt = publishedAt;
         this.viewCount = viewCount;
         this.relatedLinks = relatedLinks;
+        this.relatedBlogsUrls = relatedBlogsUrls;
+        this.taggedPeople = taggedPeople;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
@@ -179,6 +190,22 @@ public class BlogPostResponseDto {
     
     public void setRelatedLinks(String relatedLinks) {
         this.relatedLinks = relatedLinks;
+    }
+    
+    public List<String> getRelatedBlogsUrls() {
+        return relatedBlogsUrls;
+    }
+    
+    public void setRelatedBlogsUrls(List<String> relatedBlogsUrls) {
+        this.relatedBlogsUrls = relatedBlogsUrls;
+    }
+    
+    public List<TaggedPerson> getTaggedPeople() {
+        return taggedPeople;
+    }
+    
+    public void setTaggedPeople(List<TaggedPerson> taggedPeople) {
+        this.taggedPeople = taggedPeople;
     }
     
     public String getCreatedAt() {

@@ -258,6 +258,16 @@ public class BlogService {
         post.setMetaKeywords(request.getMetaKeywords());
         post.setRelatedLinks(request.getRelatedLinks());
         
+        // Set related blogs URLs (can be null or empty list)
+        if (request.getRelatedBlogsUrls() != null) {
+            post.setRelatedBlogsUrls(request.getRelatedBlogsUrls().isEmpty() ? null : request.getRelatedBlogsUrls());
+        }
+        
+        // Set tagged people (can be null or empty list)
+        if (request.getTaggedPeople() != null) {
+            post.setTaggedPeople(request.getTaggedPeople().isEmpty() ? null : request.getTaggedPeople());
+        }
+        
         if (request.getIsPublished() != null && request.getIsPublished()) {
             post.setIsPublished(true);
             post.setPublishedAt(LocalDateTime.now(ZoneId.of("Asia/Kolkata")));
@@ -472,6 +482,16 @@ public class BlogService {
             post.setRelatedLinks(request.getRelatedLinks());
         }
         
+        // Handle related blogs URLs (can be null or empty list to clear)
+        if (request.getRelatedBlogsUrls() != null) {
+            post.setRelatedBlogsUrls(request.getRelatedBlogsUrls().isEmpty() ? null : request.getRelatedBlogsUrls());
+        }
+        
+        // Handle tagged people (can be null or empty list to clear)
+        if (request.getTaggedPeople() != null) {
+            post.setTaggedPeople(request.getTaggedPeople().isEmpty() ? null : request.getTaggedPeople());
+        }
+        
         // Handle publishing
         if (request.getIsPublished() != null) {
             boolean wasPublished = post.getIsPublished();
@@ -632,6 +652,8 @@ public class BlogService {
             publishedAtStr,
             post.getViewCount(),
             post.getRelatedLinks(),
+            post.getRelatedBlogsUrls(),
+            post.getTaggedPeople(),
             createdAtStr,
             updatedAtStr
         );
