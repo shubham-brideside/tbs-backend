@@ -340,10 +340,10 @@ public class BlogService {
     
     /**
      * Get post by slug
-     * Note: View count is not incremented automatically to prevent double-counting
-     * Use trackPostView() method separately to track views
+     * Automatically tracks view count when a published post is retrieved
      */
-    @Transactional(readOnly = true)
+    @Transactional
+    @CacheEvict(value = {"blogCategories", "blogPosts"}, allEntries = true)
     public BlogPostResponseDto getPostBySlug(String slug) {
         BlogPost post = postRepository.findBySlug(slug)
             .orElseThrow(() -> new RuntimeException("Post not found with slug: " + slug));
@@ -351,6 +351,33 @@ public class BlogService {
         // Only return published posts for public access
         if (!post.getIsPublished()) {
             throw new RuntimeException("Post not found or not published");
+        }
+        
+        // Automatically track view count for published posts
+        Integer postId = post.getId();
+        long currentTime = System.currentTimeMillis();
+        
+        // Check if we've incremented this post recently (within cooldown period)
+        Long lastIncrementTime = viewIncrementCache.get(postId);
+        if (lastIncrementTime == null || (currentTime - lastIncrementTime) >= VIEW_INCREMENT_COOLDOWN_MS) {
+            // Increment view count (this method has flushAutomatically = true)
+            postRepository.incrementViewCount(postId);
+            
+            // Update cache with current timestamp
+            viewIncrementCache.put(postId, currentTime);
+            
+            // Clean up old cache entries (older than cooldown period) to prevent memory leak
+            viewIncrementCache.entrySet().removeIf(entry -> 
+                (currentTime - entry.getValue()) > VIEW_INCREMENT_COOLDOWN_MS);
+            
+            logger.info("View count incremented for post {} (slug: {})", postId, slug);
+            
+            // Refresh the post entity to get the updated view count
+            post = postRepository.findById(postId)
+                .orElseThrow(() -> new RuntimeException("Post not found with id: " + postId));
+        } else {
+            logger.debug("View increment rate-limited for post {} (last increment was {}ms ago)", 
+                        postId, currentTime - lastIncrementTime);
         }
         
         return convertToPostResponseDto(post);
