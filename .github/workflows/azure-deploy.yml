@@ -16,6 +16,9 @@ env:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
     
     steps:
     - name: 'Checkout GitHub Action'
@@ -43,7 +46,7 @@ jobs:
       run: mvn test
     
     - name: 'Azure Login'
-      uses: azure/login@v1.4.3
+      uses: azure/login@v2
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
     

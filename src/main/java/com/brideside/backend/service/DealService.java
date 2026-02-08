@@ -5,9 +5,12 @@ import com.brideside.backend.dto.DealResponseDto;
 import com.brideside.backend.dto.DealInitRequestDto;
 import com.brideside.backend.dto.DealUpdateRequestDto;
 import com.brideside.backend.entity.Deal;
-import com.brideside.backend.entity.Contact;
+import com.brideside.backend.entity.Person;
+import com.brideside.backend.enums.CreatedBy;
+import com.brideside.backend.enums.DealStatus;
+import com.brideside.backend.enums.DealSubSource;
 import com.brideside.backend.repository.DealRepository;
-import com.brideside.backend.repository.ContactRepository;
+import com.brideside.backend.repository.PersonRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,6 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
@@ -31,16 +35,32 @@ public class DealService {
     private DealRepository dealRepository;
     
     @Autowired
-    private ContactRepository contactRepository;
-    
-    @Autowired
-    private PipedriveService pipedriveService;
+    private PersonRepository personRepository;
     
     @Autowired
     private WhatsAppService whatsAppService;
     
+    // Default values for deal creation
+    private static final Long DEFAULT_PIPELINE_ID = 67L;
+    private static final Long DEFAULT_ORGANIZATION_ID = 68L;
+    private static final DealStatus DEFAULT_STATUS = DealStatus.IN_PROGRESS;
+    private static final Long DEFAULT_CATEGORY_ID = 3L;
+    private static final String DEFAULT_DEAL_SOURCE = "DIRECT";
+    private static final DealSubSource DEFAULT_DEAL_SUB_SOURCE = DealSubSource.LANDING_PAGE;
+    private static final CreatedBy DEFAULT_CREATED_BY = CreatedBy.USER;
+    private static final String DEFAULT_CREATED_BY_NAME = "Saloni";
+    private static final Long DEFAULT_CREATED_BY_USER_ID = 69L;
+    private static final Long DEFAULT_STAGE_ID = 338L;
+    
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     private static final DateTimeFormatter DATETIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    
+    // Default values for person creation
+    private static final String DEFAULT_PERSON_SOURCE = "DIRECT";
+    private static final DealSubSource DEFAULT_PERSON_SUB_SOURCE = DealSubSource.LANDING_PAGE;
+    private static final Long DEFAULT_PERSON_ORGANIZATION_ID = 68L;
+    private static final Long DEFAULT_PERSON_OWNER_ID = 69L;
+    private static final Long DEFAULT_PERSON_CATEGORY_ID = 3L;
     
     /**
      * Create multiple deals from a single request
@@ -51,6 +71,14 @@ public class DealService {
     @CacheEvict(value = "deals", allEntries = true)
     public DealResponseDto createDeals(DealRequestDto dealRequest) {
         List<DealResponseDto.DealDto> createdDeals = new ArrayList<>();
+        
+        // Create or get person for the contact
+        LocalDate firstEventDate = dealRequest.getCategories().isEmpty() ? null : 
+                dealRequest.getCategories().get(0).getEventDate();
+        String firstVenue = dealRequest.getCategories().isEmpty() ? null : 
+                dealRequest.getCategories().get(0).getVenue();
+        Person person = createOrGetPerson(dealRequest.getName(), dealRequest.getContactNumber(), 
+                firstVenue, firstEventDate);
         
         // Create a separate deal for each category
         for (DealRequestDto.CategoryDto category : dealRequest.getCategories()) {
@@ -64,6 +92,12 @@ public class DealService {
                 category.getExpectedGathering()
             );
             
+            // Set required fields with default values
+            setDefaultDealFields(deal);
+            
+            // Set person_id
+            deal.setPersonId(person.getId());
+            
             Deal savedDeal = dealRepository.save(deal);
             createdDeals.add(convertToDealDto(savedDeal));
         }
@@ -72,6 +106,78 @@ public class DealService {
                                      createdDeals.size(), dealRequest.getName());
         
         return new DealResponseDto(message, createdDeals);
+    }
+    
+    /**
+     * Create or get a person for the given contact information
+     * @param name the person's name
+     * @param contactNumber the contact number
+     * @param venue the venue (optional)
+     * @param eventDate the event date (optional)
+     * @return the created or existing person
+     */
+    private Person createOrGetPerson(String name, String contactNumber, String venue, LocalDate eventDate) {
+        // Check if person already exists with this phone number
+        Person existingPerson = personRepository.findByPhoneAndIsDeleted(contactNumber, false)
+                .orElse(null);
+        
+        if (existingPerson != null) {
+            logger.info("Found existing person with ID: {} for phone: {}", existingPerson.getId(), contactNumber);
+            return existingPerson;
+        }
+        
+        // Create new person
+        Person person = new Person();
+        person.setName(name);
+        person.setPhone(contactNumber);
+        person.setPhoneNum(contactNumber);
+        person.setSource(DEFAULT_PERSON_SOURCE);
+        person.setSubSource(DEFAULT_PERSON_SUB_SOURCE);
+        person.setVenue(venue);
+        
+        // Convert event date to string format (yyyy-MM-dd)
+        if (eventDate != null) {
+            person.setWeddingDate(eventDate.format(DATE_FORMATTER));
+        }
+        
+        person.setLeadDate(LocalDate.now());
+        person.setOrganizationId(DEFAULT_PERSON_ORGANIZATION_ID);
+        person.setOwnerId(DEFAULT_PERSON_OWNER_ID);
+        person.setCategoryId(DEFAULT_PERSON_CATEGORY_ID);
+        person.setIsDeleted(false);
+        
+        Person savedPerson = personRepository.save(person);
+        logger.info("Created new person with ID: {} for phone: {}", savedPerson.getId(), contactNumber);
+        return savedPerson;
+    }
+    
+    /**
+     * Set default fields for a deal
+     * @param deal the deal to set fields on
+     */
+    private void setDefaultDealFields(Deal deal) {
+        deal.setPipelineId(DEFAULT_PIPELINE_ID);
+        deal.setOrganizationId(DEFAULT_ORGANIZATION_ID);
+        deal.setStatus(DEFAULT_STATUS);
+        deal.setCategoryId(DEFAULT_CATEGORY_ID);
+        deal.setDealSource(DEFAULT_DEAL_SOURCE);
+        deal.setDealSubSource(DEFAULT_DEAL_SUB_SOURCE);
+        deal.setCreatedBy(DEFAULT_CREATED_BY);
+        deal.setCreatedByName(DEFAULT_CREATED_BY_NAME);
+        deal.setCreatedByUserId(DEFAULT_CREATED_BY_USER_ID);
+        deal.setStageId(DEFAULT_STAGE_ID);
+        // Set value from budget if budget is provided, otherwise set to ZERO
+        if (deal.getBudget() != null) {
+            deal.setValue(deal.getBudget());
+        } else if (deal.getValue() == null) {
+            deal.setValue(BigDecimal.ZERO);
+        }
+        // Set event_dates from event_date if event_date is provided
+        if (deal.getEventDate() != null) {
+            List<LocalDate> eventDates = new ArrayList<>();
+            eventDates.add(deal.getEventDate());
+            deal.setEventDates(eventDates);
+        }
     }
     
     /**
@@ -93,38 +199,12 @@ public class DealService {
         if (!existingDeals.isEmpty()) {
             // If deals exist with the same contact number, update the first one's timestamp
             Deal existingDeal = existingDeals.get(0);
-            logger.info("Found existing deal with ID: {}, contact_number: {}, pipedrive_deal_id: {}, contact_id: {}", 
-                       existingDeal.getId(), existingDeal.getContactNumber(), 
-                       existingDeal.getPipedriveDealId(), existingDeal.getContactId());
+            logger.info("Found existing deal with ID: {}, contact_number: {}", 
+                       existingDeal.getId(), existingDeal.getContactNumber());
             
-            // If existing deal doesn't have Pipedrive IDs, create them now
-            if (existingDeal.getPipedriveDealId() == null || existingDeal.getContactId() == null) {
-                logger.info("Existing deal {} doesn't have Pipedrive IDs. Creating them now...", existingDeal.getId());
-                try {
-                    // Get or create contact in Pipedrive
-                    Contact contact = null;
-                    if (existingDeal.getContactId() != null) {
-                        contact = contactRepository.findById(existingDeal.getContactId()).orElse(null);
-                    }
-                    
-                    if (contact == null || contact.getPipedriveContactId() == null) {
-                        // Create new contact in Pipedrive
-                        contact = pipedriveService.createPerson("TBS", existingDeal.getContactNumber());
-                        if (contact != null) {
-                            existingDeal.setContactId(contact.getId());
-                        }
-                    }
-                    
-                    // Create deal in Pipedrive if missing (only if we have a valid contact)
-                    if (existingDeal.getPipedriveDealId() == null && contact != null && contact.getPipedriveContactId() != null) {
-                        String pipedriveDealId = pipedriveService.createDeal(contact, "TBS Deal", 0);
-                        existingDeal.setPipedriveDealId(pipedriveDealId);
-                        logger.info("Successfully created Pipedrive deal {} for existing deal {}", pipedriveDealId, existingDeal.getId());
-                    }
-                } catch (Exception e) {
-                    logger.error("Error creating Pipedrive IDs for existing deal {}: {}", existingDeal.getId(), e.getMessage(), e);
-                    // Continue and save the deal anyway
-                }
+            // Ensure default fields are set if missing
+            if (existingDeal.getStatus() == null) {
+                setDefaultDealFields(existingDeal);
             }
             
             // The @UpdateTimestamp annotation will automatically update the updatedAt field
@@ -132,53 +212,29 @@ public class DealService {
             logger.info("Updated existing deal {} timestamp", updatedDeal.getId());
             return updatedDeal.getId();
         } else {
-            try {
-                // Create contact in Pipedrive
-                Contact contact = pipedriveService.createPerson("TBS", dealInitRequest.getContactNumber());
-                
-                // Create deal in Pipedrive
-                String pipedriveDealId = pipedriveService.createDeal(contact, "TBS Deal", 0);
-                
-                // Create a new basic deal with just contact number and placeholder values
-                Deal deal = new Deal(
-                    "TBS", // Placeholder for name - will be updated later
-                    dealInitRequest.getContactNumber(),
-                    "TBS", // Placeholder for category - will be updated later
-                    null, // Event date - will be updated later
-                    null, // Venue - will be updated later
-                    null, // Budget - will be updated later
-                    null  // Expected gathering - will be updated later
-                );
-                // Set value to 0 (required NOT NULL field)
-                deal.setValue(BigDecimal.ZERO);
-                // Store the contact ID and Pipedrive deal ID
-                deal.setContactId(contact.getId());
-                deal.setPipedriveDealId(pipedriveDealId);
-                
-                Deal savedDeal = dealRepository.save(deal);
-                return savedDeal.getId();
-                
-            } catch (Exception e) {
-                logger.error("Error creating deal in Pipedrive for contact: {}. Error: {}. Creating deal locally without Pipedrive integration.", 
-                           dealInitRequest.getContactNumber(), e.getMessage(), e);
-                // If Pipedrive integration fails, still create the deal locally
-                // This ensures the system remains functional even if Pipedrive is down
-                Deal deal = new Deal(
-                    "TBS", // Placeholder for name - will be updated later
-                    dealInitRequest.getContactNumber(),
-                    "TBS", // Placeholder for category - will be updated later
-                    null, // Event date - will be updated later
-                    null, // Venue - will be updated later
-                    null, // Budget - will be updated later
-                    null  // Expected gathering - will be updated later
-                );
-                // Set value to 0 (required NOT NULL field)
-                deal.setValue(BigDecimal.ZERO);
-                
-                Deal savedDeal = dealRepository.save(deal);
-                logger.warn("Deal created locally (ID: {}) without Pipedrive integration due to error", savedDeal.getId());
-                return savedDeal.getId();
-            }
+            // Create or get person for the contact
+            Person person = createOrGetPerson("TBS", dealInitRequest.getContactNumber(), null, null);
+            
+            // Create a new basic deal with just contact number and placeholder values
+            Deal deal = new Deal(
+                "TBS", // Placeholder for name - will be updated later
+                dealInitRequest.getContactNumber(),
+                "TBS", // Placeholder for category - will be updated later
+                null, // Event date - will be updated later
+                null, // Venue - will be updated later
+                null, // Budget - will be updated later
+                null  // Expected gathering - will be updated later
+            );
+            
+            // Set required fields with default values
+            setDefaultDealFields(deal);
+            
+            // Set person_id
+            deal.setPersonId(person.getId());
+            
+            Deal savedDeal = dealRepository.save(deal);
+            logger.info("Created new deal with ID: {}", savedDeal.getId());
+            return savedDeal.getId();
         }
     }
     
@@ -264,6 +320,12 @@ public class DealService {
         // Update the deal with new data (assuming single category for update)
         if (!dealRequest.getCategories().isEmpty()) {
             DealRequestDto.CategoryDto category = dealRequest.getCategories().get(0);
+            
+            // Create or get person for the contact
+            Person person = createOrGetPerson(dealRequest.getName(), dealRequest.getContactNumber(), 
+                    category.getVenue(), category.getEventDate());
+            existingDeal.setPersonId(person.getId());
+            
             existingDeal.setUserName(dealRequest.getName());
             existingDeal.setContactNumber(dealRequest.getContactNumber());
             existingDeal.setCategory(category.getName());
@@ -271,6 +333,16 @@ public class DealService {
             existingDeal.setVenue(category.getVenue());
             existingDeal.setBudget(category.getBudget());
             existingDeal.setExpectedGathering(category.getExpectedGathering());
+            // Set value from budget
+            if (category.getBudget() != null) {
+                existingDeal.setValue(category.getBudget());
+            }
+            // Set event_dates from event_date
+            if (category.getEventDate() != null) {
+                List<LocalDate> eventDates = new ArrayList<>();
+                eventDates.add(category.getEventDate());
+                existingDeal.setEventDates(eventDates);
+            }
         }
         
         Deal updatedDeal = dealRepository.save(existingDeal);
@@ -302,68 +374,21 @@ public class DealService {
         String contactNumber = existingDeal.getContactNumber();
         String userName = dealUpdateRequest.getName();
         
-        // Get the contact from the existing deal
-        Contact contact = null;
-        if (existingDeal.getContactId() != null) {
-            contact = contactRepository.findById(existingDeal.getContactId()).orElse(null);
-        }
+        // Create or get person for the contact
+        DealUpdateRequestDto.CategoryDto firstCategory = dealUpdateRequest.getCategories().get(0);
+        Person person = createOrGetPerson(userName, contactNumber, firstCategory.getVenue(), firstCategory.getEventDate());
         
-        // If no contact exists, create one in Pipedrive
-        if (contact == null) {
-            try {
-                contact = pipedriveService.createPerson(userName, contactNumber);
-                // Update the existing deal with the contact ID
-                existingDeal.setContactId(contact.getId());
-                dealRepository.save(existingDeal);
-            } catch (Exception e) {
-                logger.error("Error creating contact in Pipedrive for contact: {}", contactNumber, e);
-                // If Pipedrive fails, continue without Pipedrive integration
-                contact = null;
+        // Update person with latest information if it was a placeholder
+        if ("TBS".equals(person.getName()) || person.getName().startsWith("TBS")) {
+            person.setName(userName);
+            person.setVenue(firstCategory.getVenue());
+            if (firstCategory.getEventDate() != null) {
+                person.setWeddingDate(firstCategory.getEventDate().format(DATE_FORMATTER));
             }
-        } else {
-            // Update contact name in Pipedrive if it was "TBS" or starts with "TBS_"
-            if (contact.getContactName().startsWith("TBS")) {
-                try {
-                    // Update contact name locally with unique format
-                    String uniqueContactName = userName + "_" + contactNumber;
-                    contact.setContactName(uniqueContactName);
-                    contactRepository.save(contact);
-                    
-                    // Update person's first name in Pipedrive
-                    if (contact.getPipedriveContactId() != null) {
-                        logger.info("Updating person {} first_name in Pipedrive to: {}", contact.getPipedriveContactId(), userName);
-                        pipedriveService.updatePersonFirstName(contact.getPipedriveContactId(), userName);
-                        logger.info("Successfully updated person {} first_name in Pipedrive", contact.getPipedriveContactId());
-                    } else {
-                        logger.warn("Cannot update person first_name: pipedriveContactId is null for contact {}", contact.getId());
-                    }
-                } catch (Exception e) {
-                    logger.error("Error updating contact name for contact: {}", contactNumber, e);
-                    // If update fails, continue with local update
-                    String uniqueContactName = userName + "_" + contactNumber;
-                    contact.setContactName(uniqueContactName);
-                    contactRepository.save(contact);
-                }
-            } else {
-                // Even if contact name doesn't start with "TBS", update the first name in Pipedrive with the new userName
-                try {
-                    if (contact.getPipedriveContactId() != null) {
-                        logger.info("Updating person {} first_name in Pipedrive to: {} (contact name doesn't start with TBS)", 
-                                   contact.getPipedriveContactId(), userName);
-                        pipedriveService.updatePersonFirstName(contact.getPipedriveContactId(), userName);
-                        logger.info("Successfully updated person {} first_name in Pipedrive", contact.getPipedriveContactId());
-                    } else {
-                        logger.warn("Cannot update person first_name: pipedriveContactId is null for contact {}", contact.getId());
-                    }
-                } catch (Exception e) {
-                    logger.error("Error updating person first name in Pipedrive for contact: {}", contactNumber, e.getMessage(), e);
-                    // Continue without Pipedrive update
-                }
-            }
+            personRepository.save(person);
         }
         
         // Update the original deal with the first category (primary deal)
-        DealUpdateRequestDto.CategoryDto firstCategory = dealUpdateRequest.getCategories().get(0);
         
         // Update the existing deal with real data
         existingDeal.setUserName(userName);
@@ -372,32 +397,24 @@ public class DealService {
         existingDeal.setVenue(firstCategory.getVenue());
         existingDeal.setBudget(firstCategory.getBudget());
         existingDeal.setExpectedGathering(firstCategory.getExpectedGathering());
-        
-        // Update Pipedrive deal if contact is available
-        if (contact != null && existingDeal.getPipedriveDealId() != null) {
-            try {
-                logger.info("Updating Pipedrive deal {} with userName: {}, category: {}", 
-                           existingDeal.getPipedriveDealId(), userName, firstCategory.getName());
-                // Update the existing Pipedrive deal with custom fields including full name and title
-                pipedriveService.updateDealCustomFields(existingDeal.getPipedriveDealId(), 
-                    firstCategory.getName(), 
-                    firstCategory.getEventDate(), 
-                    firstCategory.getVenue(),
-                    userName,
-                    firstCategory.getBudget());
-                logger.info("Successfully updated Pipedrive deal {} with user details", existingDeal.getPipedriveDealId());
-            } catch (Exception e) {
-                logger.error("Error updating Pipedrive deal {}: {}", existingDeal.getPipedriveDealId(), e.getMessage(), e);
-                // If Pipedrive fails, continue without Pipedrive integration
-            }
-        } else {
-            if (contact == null) {
-                logger.warn("Cannot update Pipedrive deal {}: Contact is null", existingDeal.getPipedriveDealId());
-            }
-            if (existingDeal.getPipedriveDealId() == null) {
-                logger.warn("Cannot update Pipedrive deal: pipedriveDealId is null for deal {}", existingDeal.getId());
-            }
+        // Set value from budget
+        if (firstCategory.getBudget() != null) {
+            existingDeal.setValue(firstCategory.getBudget());
         }
+        // Set event_dates from event_date
+        if (firstCategory.getEventDate() != null) {
+            List<LocalDate> eventDates = new ArrayList<>();
+            eventDates.add(firstCategory.getEventDate());
+            existingDeal.setEventDates(eventDates);
+        }
+        
+        // Ensure default fields are set if missing
+        if (existingDeal.getStatus() == null) {
+            setDefaultDealFields(existingDeal);
+        }
+        
+        // Set person_id
+        existingDeal.setPersonId(person.getId());
         
         // Save the updated deal to database
         logger.info("Saving updated deal {} to database with userName: {}", existingDeal.getId(), userName);
@@ -419,30 +436,11 @@ public class DealService {
                     category.getExpectedGathering()
                 );
                 
-                // Set contact ID if available
-                if (contact != null) {
-                    additionalDeal.setContactId(contact.getId());
-                }
+                // Set required fields with default values
+                setDefaultDealFields(additionalDeal);
                 
-                // Create additional deal in Pipedrive if contact is available
-                if (contact != null) {
-                    try {
-                        String pipedriveDealId = pipedriveService.createDeal(contact, category.getName(), 
-                            category.getBudget() != null ? category.getBudget().intValue() : 0);
-                        additionalDeal.setPipedriveDealId(pipedriveDealId);
-                        
-                        // Update Pipedrive deal with custom fields including full name and title
-                        pipedriveService.updateDealCustomFields(pipedriveDealId, 
-                            category.getName(), 
-                            category.getEventDate(), 
-                            category.getVenue(),
-                            userName,
-                            category.getBudget());
-                    } catch (Exception e) {
-                        logger.error("Error creating additional Pipedrive deal for category: {}", category.getName(), e);
-                        // If Pipedrive fails, continue without Pipedrive integration
-                    }
-                }
+                // Set person_id
+                additionalDeal.setPersonId(person.getId());
                 
                 dealRepository.save(additionalDeal);
             }

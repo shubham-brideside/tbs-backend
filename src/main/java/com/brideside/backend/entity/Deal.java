@@ -1,5 +1,9 @@
 package com.brideside.backend.entity;
 
+import com.brideside.backend.converter.JsonListDateConverter;
+import com.brideside.backend.enums.CreatedBy;
+import com.brideside.backend.enums.DealStatus;
+import com.brideside.backend.enums.DealSubSource;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Positive;
@@ -11,6 +15,8 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "deals")
@@ -34,6 +40,10 @@ public class Deal {
     
     @Column(name = "event_date")
     private LocalDate eventDate;
+    
+    @Column(name = "event_dates", columnDefinition = "JSON")
+    @Convert(converter = JsonListDateConverter.class)
+    private List<LocalDate> eventDates;
     
     @Column(name = "venue", length = 255)
     private String venue;
@@ -78,8 +88,41 @@ public class Deal {
     @Column(name = "pipedrive_deal_id", length = 100)
     private String pipedriveDealId;
     
-    @Column(name = "contact_id")
-    private Integer contactId;
+    @Column(name = "person_id")
+    private Long personId;
+    
+    @Column(name = "pipeline_id")
+    private Long pipelineId;
+    
+    @Column(name = "organization_id")
+    private Long organizationId;
+    
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false)
+    private DealStatus status;
+    
+    @Column(name = "category_id")
+    private Long categoryId;
+    
+    @Column(name = "deal_source", length = 50)
+    private String dealSource;
+    
+    @Enumerated(EnumType.STRING)
+    @Column(name = "deal_sub_source")
+    private DealSubSource dealSubSource;
+    
+    @Enumerated(EnumType.STRING)
+    @Column(name = "created_by")
+    private CreatedBy createdBy;
+    
+    @Column(name = "created_by_name", length = 255)
+    private String createdByName;
+    
+    @Column(name = "created_by_user_id")
+    private Long createdByUserId;
+    
+    @Column(name = "stage_id")
+    private Long stageId;
     
     // Default constructor
     public Deal() {}
@@ -135,6 +178,14 @@ public class Deal {
     
     public void setEventDate(LocalDate eventDate) {
         this.eventDate = eventDate;
+    }
+    
+    public List<LocalDate> getEventDates() {
+        return eventDates;
+    }
+    
+    public void setEventDates(List<LocalDate> eventDates) {
+        this.eventDates = eventDates;
     }
     
     public String getVenue() {
@@ -193,12 +244,92 @@ public class Deal {
         this.pipedriveDealId = pipedriveDealId;
     }
     
-    public Integer getContactId() {
-        return contactId;
+    public Long getPersonId() {
+        return personId;
     }
     
-    public void setContactId(Integer contactId) {
-        this.contactId = contactId;
+    public void setPersonId(Long personId) {
+        this.personId = personId;
+    }
+    
+    public Long getPipelineId() {
+        return pipelineId;
+    }
+    
+    public void setPipelineId(Long pipelineId) {
+        this.pipelineId = pipelineId;
+    }
+    
+    public Long getOrganizationId() {
+        return organizationId;
+    }
+    
+    public void setOrganizationId(Long organizationId) {
+        this.organizationId = organizationId;
+    }
+    
+    public DealStatus getStatus() {
+        return status;
+    }
+    
+    public void setStatus(DealStatus status) {
+        this.status = status;
+    }
+    
+    public Long getCategoryId() {
+        return categoryId;
+    }
+    
+    public void setCategoryId(Long categoryId) {
+        this.categoryId = categoryId;
+    }
+    
+    public String getDealSource() {
+        return dealSource;
+    }
+    
+    public void setDealSource(String dealSource) {
+        this.dealSource = dealSource;
+    }
+    
+    public DealSubSource getDealSubSource() {
+        return dealSubSource;
+    }
+    
+    public void setDealSubSource(DealSubSource dealSubSource) {
+        this.dealSubSource = dealSubSource;
+    }
+    
+    public CreatedBy getCreatedBy() {
+        return createdBy;
+    }
+    
+    public void setCreatedBy(CreatedBy createdBy) {
+        this.createdBy = createdBy;
+    }
+    
+    public String getCreatedByName() {
+        return createdByName;
+    }
+    
+    public void setCreatedByName(String createdByName) {
+        this.createdByName = createdByName;
+    }
+    
+    public Long getCreatedByUserId() {
+        return createdByUserId;
+    }
+    
+    public void setCreatedByUserId(Long createdByUserId) {
+        this.createdByUserId = createdByUserId;
+    }
+    
+    public Long getStageId() {
+        return stageId;
+    }
+    
+    public void setStageId(Long stageId) {
+        this.stageId = stageId;
     }
     
     @Override
@@ -215,7 +346,7 @@ public class Deal {
                 ", createdAt=" + createdAt +
                 ", updatedAt=" + updatedAt +
                 ", pipedriveDealId='" + pipedriveDealId + '\'' +
-                ", contactId=" + contactId +
+                ", personId=" + personId +
                 '}';
     }
 }

@@ -2,7 +2,12 @@ package com.brideside.backend.controller;
 
 import com.brideside.backend.dto.DealRequestDto;
 import com.brideside.backend.entity.Deal;
+import com.brideside.backend.entity.Person;
+import com.brideside.backend.enums.CreatedBy;
+import com.brideside.backend.enums.DealStatus;
+import com.brideside.backend.enums.DealSubSource;
 import com.brideside.backend.repository.DealRepository;
+import com.brideside.backend.repository.PersonRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -35,6 +40,9 @@ public class DealControllerIntegrationTest {
     private DealRepository dealRepository;
 
     @Autowired
+    private PersonRepository personRepository;
+
+    @Autowired
     private ObjectMapper objectMapper;
 
     private MockMvc mockMvc;
@@ -44,7 +52,9 @@ public class DealControllerIntegrationTest {
         // Clean up any existing data before each test to ensure isolation
         try {
             dealRepository.deleteAll();
+            personRepository.deleteAll();
             dealRepository.flush();
+            personRepository.flush();
         } catch (Exception e) {
             // Ignore if table doesn't exist yet - it will be created by Hibernate
         }
@@ -156,13 +166,52 @@ public class DealControllerIntegrationTest {
     }
 
     private void createTestDeals() {
+        // Create a person first
+        Person person = new Person();
+        person.setName("Shubham");
+        person.setPhone("9304683214");
+        person.setPhoneNum("9304683214");
+        person.setSource("DIRECT");
+        person.setSubSource(DealSubSource.LANDING_PAGE);
+        person.setOrganizationId(68L);
+        person.setOwnerId(69L);
+        person.setCategoryId(3L);
+        person.setIsDeleted(false);
+        person.setLeadDate(LocalDate.now());
+        Person savedPerson = personRepository.save(person);
+        
+        // Create deals with all required fields
         Deal deal1 = new Deal("Shubham", "9304683214", "Photography", 
                              LocalDate.of(2025, 10, 20), "The Leela Palace", 
                              new BigDecimal("200000"), 200);
+        deal1.setPersonId(savedPerson.getId());
+        deal1.setPipelineId(67L);
+        deal1.setOrganizationId(68L);
+        deal1.setStatus(DealStatus.IN_PROGRESS);
+        deal1.setCategoryId(3L);
+        deal1.setDealSource("DIRECT");
+        deal1.setDealSubSource(DealSubSource.LANDING_PAGE);
+        deal1.setCreatedBy(CreatedBy.USER);
+        deal1.setCreatedByName("Saloni");
+        deal1.setCreatedByUserId(69L);
+        deal1.setStageId(338L);
+        deal1.setValue(new BigDecimal("200000"));
         
         Deal deal2 = new Deal("Shubham", "9304683214", "Makeup", 
                              LocalDate.of(2025, 10, 25), "Taj Palace", 
                              new BigDecimal("150000"), 180);
+        deal2.setPersonId(savedPerson.getId());
+        deal2.setPipelineId(67L);
+        deal2.setOrganizationId(68L);
+        deal2.setStatus(DealStatus.IN_PROGRESS);
+        deal2.setCategoryId(3L);
+        deal2.setDealSource("DIRECT");
+        deal2.setDealSubSource(DealSubSource.LANDING_PAGE);
+        deal2.setCreatedBy(CreatedBy.USER);
+        deal2.setCreatedByName("Saloni");
+        deal2.setCreatedByUserId(69L);
+        deal2.setStageId(338L);
+        deal2.setValue(new BigDecimal("150000"));
         
         dealRepository.saveAll(List.of(deal1, deal2));
     }

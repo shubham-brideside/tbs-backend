@@ -5,9 +5,9 @@ import com.brideside.backend.dto.DealResponseDto;
 import com.brideside.backend.dto.DealInitRequestDto;
 import com.brideside.backend.dto.DealUpdateRequestDto;
 import com.brideside.backend.entity.Deal;
-import com.brideside.backend.entity.Contact;
+import com.brideside.backend.entity.Person;
 import com.brideside.backend.repository.DealRepository;
-import com.brideside.backend.repository.ContactRepository;
+import com.brideside.backend.repository.PersonRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -33,10 +33,7 @@ class DealServiceTest {
     private DealRepository dealRepository;
     
     @Mock
-    private ContactRepository contactRepository;
-    
-    @Mock
-    private PipedriveService pipedriveService;
+    private PersonRepository personRepository;
     
     @Mock
     private WhatsAppService whatsAppService;
@@ -65,6 +62,10 @@ class DealServiceTest {
     @Test
     void testCreateDeals_Success() {
         // Given
+        Person mockPerson = new Person();
+        mockPerson.setId(1L);
+        when(personRepository.findByPhoneAndIsDeleted(anyString(), eq(false))).thenReturn(java.util.Optional.empty());
+        when(personRepository.save(any(Person.class))).thenReturn(mockPerson);
         when(dealRepository.save(any(Deal.class))).thenReturn(new Deal());
 
         // When
@@ -74,6 +75,7 @@ class DealServiceTest {
         assertNotNull(result);
         assertNotNull(result.getMessage());
         assertNotNull(result.getCreatedDeals());
+        verify(personRepository, times(1)).save(any(Person.class));
         verify(dealRepository, times(1)).save(any(Deal.class));
     }
 
@@ -101,16 +103,13 @@ class DealServiceTest {
         Deal savedDeal = new Deal();
         savedDeal.setId(1);
         
-        when(dealRepository.findByContactNumber("+1234567890")).thenReturn(Arrays.asList());
-        when(dealRepository.save(any(Deal.class))).thenReturn(savedDeal);
+        Person mockPerson = new Person();
+        mockPerson.setId(1L);
         
-        // Mock PipedriveService calls to prevent NullPointerException
-        try {
-            when(pipedriveService.createPerson(anyString(), anyString())).thenReturn(new Contact());
-            when(pipedriveService.createDeal(any(Contact.class), anyString(), anyInt())).thenReturn("pipedrive-deal-id");
-        } catch (Exception e) {
-            // Mock exceptions to simulate Pipedrive failures
-        }
+        when(dealRepository.findByContactNumber("+1234567890")).thenReturn(Arrays.asList());
+        when(personRepository.findByPhoneAndIsDeleted("+1234567890", false)).thenReturn(java.util.Optional.empty());
+        when(personRepository.save(any(Person.class))).thenReturn(mockPerson);
+        when(dealRepository.save(any(Deal.class))).thenReturn(savedDeal);
 
         // When
         Integer result = dealService.initializeDeal(initRequest);
@@ -119,6 +118,7 @@ class DealServiceTest {
         assertNotNull(result);
         assertEquals(1, result);
         verify(dealRepository, times(1)).findByContactNumber("+1234567890");
+        verify(personRepository, times(1)).save(any(Person.class));
         verify(dealRepository, times(1)).save(any(Deal.class));
     }
 
@@ -187,7 +187,17 @@ class DealServiceTest {
         additionalDeal.setUserName("John Doe");
         additionalDeal.setCategory("Makeup");
         
+        Person mockPerson = new Person();
+        mockPerson.setId(1L);
+        mockPerson.setName("TBS");
+        
+        Person updatedPerson = new Person();
+        updatedPerson.setId(1L);
+        updatedPerson.setName("John Doe");
+        
         when(dealRepository.findById(1)).thenReturn(java.util.Optional.of(existingDeal));
+        when(personRepository.findByPhoneAndIsDeleted("+1234567890", false)).thenReturn(java.util.Optional.of(mockPerson));
+        when(personRepository.save(any(Person.class))).thenReturn(updatedPerson);
         
         // Use Answer to control mock behavior based on call count
         final int[] callCount = {0};
@@ -199,15 +209,6 @@ class DealServiceTest {
                 return additionalDeal; // Subsequent calls return additional deal
             }
         });
-        
-        // Mock PipedriveService calls to prevent NullPointerException
-        try {
-            when(pipedriveService.createPerson(anyString(), anyString())).thenReturn(new Contact());
-            when(pipedriveService.createDeal(any(Contact.class), anyString(), anyInt())).thenReturn("pipedrive-deal-id");
-            doNothing().when(pipedriveService).updateDealCustomFields(anyString(), anyString(), any(), anyString(), anyString(), any());
-        } catch (Exception e) {
-            // Mock exceptions to simulate Pipedrive failures
-        }
 
         // When
         DealResponseDto.DealDto result = dealService.updateDealWithoutContactNumber(1, updateRequest);
@@ -215,7 +216,8 @@ class DealServiceTest {
         // Then
         assertNotNull(result);
         verify(dealRepository, times(1)).findById(1);
-        verify(dealRepository, times(3)).save(any(Deal.class)); // Should save contact update + updated original + additional deal
+        verify(dealRepository, times(2)).save(any(Deal.class)); // Should save updated original + additional deal
+        verify(personRepository, times(1)).save(any(Person.class)); // Should save person update if name was "TBS"
         verify(dealRepository, never()).delete(any(Deal.class)); // Should NOT delete original deal
     }
 }

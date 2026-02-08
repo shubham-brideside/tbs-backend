@@ -25,6 +25,11 @@ spring:
         globally_quoted_identifiers: true
         globally_quoted_identifiers_skip_column_definitions: false
   
+  # Disable SQL initialization scripts for tests - let Hibernate auto-create tables
+  sql:
+    init:
+      mode: never
+  
   h2:
     console:
       enabled: true
