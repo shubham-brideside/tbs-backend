@@ -57,6 +57,7 @@ public class Person {
     private Long categoryId;
     
     @Column(name = "is_deleted", nullable = false)
+    @org.hibernate.annotations.ColumnDefault("0")
     private Boolean isDeleted = false;
     
     @CreationTimestamp
