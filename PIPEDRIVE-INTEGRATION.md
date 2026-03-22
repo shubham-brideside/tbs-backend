@@ -93,19 +93,19 @@ CREATE TABLE `contacts` (
 CREATE TABLE `deals` (
   `id` int NOT NULL AUTO_INCREMENT,
   `user_name` varchar(100) NOT NULL,
-  `contact_number` varchar(20) NOT NULL,
+  `phone_number` varchar(20) NOT NULL,
   `category` varchar(50) NOT NULL,
   `event_date` date DEFAULT NULL,
   `venue` varchar(255) DEFAULT NULL,
   `budget` decimal(10,2) DEFAULT NULL,
-  `expected_gathering` int DEFAULT NULL,
+  `expected_gathering` varchar(64) DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `pipedrive_deal_id` varchar(100) DEFAULT NULL,
   `contact_id` int DEFAULT NULL,
   PRIMARY KEY (`id`),
   INDEX `idx_user_name` (`user_name`),
-  INDEX `idx_contact_number` (`contact_number`),
+  INDEX `idx_phone_number` (`phone_number`),
   INDEX `idx_category` (`category`),
   INDEX `idx_event_date` (`event_date`),
   INDEX `idx_contact_id` (`contact_id`),
@@ -211,7 +211,7 @@ curl -X PUT 'http://localhost:8080/api/deals/{id}/details' \
         "event_date": "2024-06-15",
         "venue": "Grand Hotel",
         "budget": 5000,
-        "expected_gathering": 150
+        "expected_gathering": "100-300"
       }
     ]
   }'

@@ -14,6 +14,7 @@ import com.brideside.backend.repository.PersonRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
@@ -39,17 +40,24 @@ public class DealService {
     
     @Autowired
     private WhatsAppService whatsAppService;
+
+    /**
+     * FK to {@code brideside_vendors.id}. Override via {@code deal.defaults.contacted-to} or env {@code DEAL_DEFAULTS_CONTACTED_TO}.
+     */
+    @Value("${deal.defaults.contacted-to:34}")
+    private Long defaultContactedTo;
     
     // Default values for deal creation
     private static final Long DEFAULT_PIPELINE_ID = 67L;
+    private static final List<Long> DEFAULT_PIPELINE_HISTORY = List.of(67L);
+    private static final Long DEFAULT_SOURCE_PIPELINE_ID = 67L;
     private static final Long DEFAULT_ORGANIZATION_ID = 68L;
     private static final DealStatus DEFAULT_STATUS = DealStatus.IN_PROGRESS;
     private static final Long DEFAULT_CATEGORY_ID = 3L;
     private static final String DEFAULT_DEAL_SOURCE = "DIRECT";
     private static final DealSubSource DEFAULT_DEAL_SUB_SOURCE = DealSubSource.LANDING_PAGE;
-    private static final CreatedBy DEFAULT_CREATED_BY = CreatedBy.USER;
-    private static final String DEFAULT_CREATED_BY_NAME = "Saloni";
-    private static final Long DEFAULT_CREATED_BY_USER_ID = 69L;
+    private static final CreatedBy DEFAULT_CREATED_BY = CreatedBy.BOT;
+    private static final String DEFAULT_CREATED_BY_NAME = "BOT";
     private static final Long DEFAULT_STAGE_ID = 338L;
     
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
@@ -157,6 +165,9 @@ public class DealService {
      */
     private void setDefaultDealFields(Deal deal) {
         deal.setPipelineId(DEFAULT_PIPELINE_ID);
+        deal.setPipelineHistory(new ArrayList<>(DEFAULT_PIPELINE_HISTORY));
+        deal.setSourcePipelineId(DEFAULT_SOURCE_PIPELINE_ID);
+        deal.setContactedTo(defaultContactedTo);
         deal.setOrganizationId(DEFAULT_ORGANIZATION_ID);
         deal.setStatus(DEFAULT_STATUS);
         deal.setCategoryId(DEFAULT_CATEGORY_ID);
@@ -164,7 +175,7 @@ public class DealService {
         deal.setDealSubSource(DEFAULT_DEAL_SUB_SOURCE);
         deal.setCreatedBy(DEFAULT_CREATED_BY);
         deal.setCreatedByName(DEFAULT_CREATED_BY_NAME);
-        deal.setCreatedByUserId(DEFAULT_CREATED_BY_USER_ID);
+        deal.setCreatedByUserId(null);
         deal.setStageId(DEFAULT_STAGE_ID);
         // Set value from budget if budget is provided, otherwise set to ZERO
         if (deal.getBudget() != null) {
@@ -202,10 +213,7 @@ public class DealService {
             logger.info("Found existing deal with ID: {}, contact_number: {}", 
                        existingDeal.getId(), existingDeal.getContactNumber());
             
-            // Ensure default fields are set if missing
-            if (existingDeal.getStatus() == null) {
-                setDefaultDealFields(existingDeal);
-            }
+            setDefaultDealFields(existingDeal);
             
             // The @UpdateTimestamp annotation will automatically update the updatedAt field
             Deal updatedDeal = dealRepository.save(existingDeal);
@@ -408,10 +416,7 @@ public class DealService {
             existingDeal.setEventDates(eventDates);
         }
         
-        // Ensure default fields are set if missing
-        if (existingDeal.getStatus() == null) {
-            setDefaultDealFields(existingDeal);
-        }
+        setDefaultDealFields(existingDeal);
         
         // Set person_id
         existingDeal.setPersonId(person.getId());
@@ -448,14 +453,19 @@ public class DealService {
         
         // Send WhatsApp confirmation message
         try {
-            whatsAppService.sendDealConfirmation(
+            boolean sent = whatsAppService.sendDealConfirmation(
                 contactNumber,
                 userName,
                 dealUpdateRequest.getCategories(),
                 firstCategory.getEventDate(),
                 firstCategory.getVenue()
             );
-            logger.info("WhatsApp confirmation sent successfully to: {}", contactNumber);
+            if (sent) {
+                logger.info("WhatsApp confirmation sent successfully to: {}", contactNumber);
+            } else {
+                logger.warn("WhatsApp confirmation was NOT sent for {} — check logs above (Meta WhatsApp config).",
+                        contactNumber);
+            }
         } catch (Exception e) {
             logger.error("Failed to send WhatsApp confirmation to: {}. Error: {}", contactNumber, e.getMessage());
             // Don't fail the deal update if WhatsApp fails

@@ -1,12 +1,14 @@
 package com.brideside.backend.dto;
 
+import com.brideside.backend.jackson.StringOrNumberAsStringDeserializer;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.PositiveOrZero;
+import jakarta.validation.constraints.Size;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.math.BigDecimal;
@@ -64,12 +66,15 @@ public class DealUpdateRequestDto {
     public static class CategoryDto {
         
         @NotBlank(message = "Category name is required")
-        @Schema(description = "Name of the category", example = "Wedding Photography", required = true)
+        @Pattern(
+                regexp = "^(Photography|Makeup|Planning & Decor)$",
+                message = "Category name must be Photography, Makeup, or Planning & Decor"
+        )
+        @Schema(description = "Service from the planning form", example = "Photography", required = true)
         private String name;
         
-        @NotNull(message = "Event date is required")
         @JsonProperty("event_date")
-        @Schema(description = "Date of the event", example = "2024-06-15", required = true)
+        @Schema(description = "Event date when confirmed (YYYY-MM-DD)", example = "2026-11-22")
         private LocalDate eventDate;
         
         @Schema(description = "Venue for the event", example = "Grand Hotel Ballroom")
@@ -79,17 +84,18 @@ public class DealUpdateRequestDto {
         @Schema(description = "Budget for this category", example = "5000.00")
         private BigDecimal budget;
         
-        @Positive(message = "Expected gathering must be positive")
         @JsonProperty("expected_gathering")
-        @Schema(description = "Expected number of guests", example = "150", required = true)
-        private Integer expectedGathering;
+        @JsonDeserialize(using = StringOrNumberAsStringDeserializer.class)
+        @Size(max = 64, message = "Expected gathering must be at most 64 characters")
+        @Schema(description = "Guest count or range, e.g. 250 or 100-300", example = "100-300")
+        private String expectedGathering;
         
         // Default constructor
         public CategoryDto() {}
         
         // Constructor
         public CategoryDto(String name, LocalDate eventDate, String venue, 
-                          BigDecimal budget, Integer expectedGathering) {
+                          BigDecimal budget, String expectedGathering) {
             this.name = name;
             this.eventDate = eventDate;
             this.venue = venue;
@@ -130,11 +136,11 @@ public class DealUpdateRequestDto {
             this.budget = budget;
         }
         
-        public Integer getExpectedGathering() {
+        public String getExpectedGathering() {
             return expectedGathering;
         }
         
-        public void setExpectedGathering(Integer expectedGathering) {
+        public void setExpectedGathering(String expectedGathering) {
             this.expectedGathering = expectedGathering;
         }
         

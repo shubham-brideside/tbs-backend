@@ -6,10 +6,11 @@ import com.brideside.backend.enums.DealStatus;
 import com.brideside.backend.enums.DealSubSource;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -30,9 +31,19 @@ public class Deal {
     @NotBlank(message = "User name is required")
     private String userName;
     
-    @Column(name = "contact_number", nullable = false, length = 20)
+    /**
+     * Maps to {@code phone_number}. Whenever a phone value exists, it is also written to {@link #contactNumberLegacy}
+     * ({@code contact_number}) before persist/update.
+     */
+    @Column(name = "phone_number", nullable = false, length = 255)
     @NotBlank(message = "Contact number is required")
     private String contactNumber;
+
+    /**
+     * Legacy {@code contact_number} column. Same value as {@link #contactNumber} whenever either is non-null.
+     */
+    @Column(name = "contact_number", nullable = false, length = 20)
+    private String contactNumberLegacy;
     
     @Column(name = "category", nullable = false, length = 50)
     @NotBlank(message = "Category is required")
@@ -55,9 +66,8 @@ public class Deal {
     @Column(name = "\"value\"", nullable = false, precision = 12, scale = 2)
     private BigDecimal value = BigDecimal.ZERO;
     
-    @Column(name = "expected_gathering")
-    @Positive(message = "Expected gathering must be positive")
-    private Integer expectedGathering;
+    @Column(name = "expected_gathering", length = 64)
+    private String expectedGathering;
     
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -69,6 +79,7 @@ public class Deal {
     
     @PrePersist
     protected void onCreate() {
+        syncContactNumberColumns();
         // Explicitly set timestamps in IST timezone to ensure correct storage
         LocalDateTime now = LocalDateTime.now(ZoneId.of("Asia/Kolkata"));
         if (createdAt == null) {
@@ -81,8 +92,31 @@ public class Deal {
     
     @PreUpdate
     protected void onUpdate() {
+        syncContactNumberColumns();
         // Explicitly set updated timestamp in IST timezone
         updatedAt = LocalDateTime.now(ZoneId.of("Asia/Kolkata"));
+    }
+
+    /**
+     * If either {@code phone_number} or {@code contact_number} is non-null/non-blank, set both to that same value.
+     */
+    private void syncContactNumberColumns() {
+        String phone = firstNonBlank(contactNumber, contactNumberLegacy);
+        if (phone == null) {
+            return;
+        }
+        contactNumber = phone;
+        contactNumberLegacy = phone;
+    }
+
+    private static String firstNonBlank(String a, String b) {
+        if (a != null && !a.isBlank()) {
+            return a;
+        }
+        if (b != null && !b.isBlank()) {
+            return b;
+        }
+        return null;
     }
     
     @Column(name = "pipedrive_deal_id", length = 100)
@@ -93,6 +127,17 @@ public class Deal {
     
     @Column(name = "pipeline_id")
     private Long pipelineId;
+
+    /** Stored as MySQL JSON (e.g. {@code [67]}) — must not map as a bare Long. */
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "pipeline_history", columnDefinition = "json")
+    private List<Long> pipelineHistory;
+
+    @Column(name = "source_pipeline_id")
+    private Long sourcePipelineId;
+
+    @Column(name = "contacted_to")
+    private Long contactedTo;
     
     @Column(name = "organization_id")
     private Long organizationId;
@@ -129,9 +174,10 @@ public class Deal {
     
     // Constructor with all fields
     public Deal(String userName, String contactNumber, String category, LocalDate eventDate, 
-                String venue, BigDecimal budget, Integer expectedGathering) {
+                String venue, BigDecimal budget, String expectedGathering) {
         this.userName = userName;
         this.contactNumber = contactNumber;
+        this.contactNumberLegacy = contactNumber;
         this.category = category;
         this.eventDate = eventDate;
         this.venue = venue;
@@ -157,11 +203,12 @@ public class Deal {
     }
     
     public String getContactNumber() {
-        return contactNumber;
+        return contactNumber != null ? contactNumber : contactNumberLegacy;
     }
     
     public void setContactNumber(String contactNumber) {
         this.contactNumber = contactNumber;
+        this.contactNumberLegacy = contactNumber;
     }
     
     public String getCategory() {
@@ -212,11 +259,11 @@ public class Deal {
         this.value = value;
     }
     
-    public Integer getExpectedGathering() {
+    public String getExpectedGathering() {
         return expectedGathering;
     }
     
-    public void setExpectedGathering(Integer expectedGathering) {
+    public void setExpectedGathering(String expectedGathering) {
         this.expectedGathering = expectedGathering;
     }
     
@@ -258,6 +305,30 @@ public class Deal {
     
     public void setPipelineId(Long pipelineId) {
         this.pipelineId = pipelineId;
+    }
+
+    public List<Long> getPipelineHistory() {
+        return pipelineHistory;
+    }
+
+    public void setPipelineHistory(List<Long> pipelineHistory) {
+        this.pipelineHistory = pipelineHistory;
+    }
+
+    public Long getSourcePipelineId() {
+        return sourcePipelineId;
+    }
+
+    public void setSourcePipelineId(Long sourcePipelineId) {
+        this.sourcePipelineId = sourcePipelineId;
+    }
+
+    public Long getContactedTo() {
+        return contactedTo;
+    }
+
+    public void setContactedTo(Long contactedTo) {
+        this.contactedTo = contactedTo;
     }
     
     public Long getOrganizationId() {

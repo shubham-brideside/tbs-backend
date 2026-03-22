@@ -1,12 +1,14 @@
 package com.brideside.backend.dto;
 
+import com.brideside.backend.jackson.StringOrNumberAsStringDeserializer;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
+import jakarta.validation.constraints.Size;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -84,16 +86,17 @@ public class DealRequestDto {
         @PositiveOrZero(message = "Budget must be positive or zero")
         private BigDecimal budget;
         
-        @Positive(message = "Expected gathering must be positive")
         @JsonProperty("expected_gathering")
-        private Integer expectedGathering;
+        @JsonDeserialize(using = StringOrNumberAsStringDeserializer.class)
+        @Size(max = 64, message = "Expected gathering must be at most 64 characters")
+        private String expectedGathering;
         
         // Default constructor
         public CategoryDto() {}
         
         // Constructor
         public CategoryDto(String name, LocalDate eventDate, String venue, 
-                          BigDecimal budget, Integer expectedGathering) {
+                          BigDecimal budget, String expectedGathering) {
             this.name = name;
             this.eventDate = eventDate;
             this.venue = venue;
@@ -134,11 +137,11 @@ public class DealRequestDto {
             this.budget = budget;
         }
         
-        public Integer getExpectedGathering() {
+        public String getExpectedGathering() {
             return expectedGathering;
         }
         
-        public void setExpectedGathering(Integer expectedGathering) {
+        public void setExpectedGathering(String expectedGathering) {
             this.expectedGathering = expectedGathering;
         }
         

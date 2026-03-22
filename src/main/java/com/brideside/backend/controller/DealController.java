@@ -97,6 +97,8 @@ public class DealController {
             Integer dealId = dealService.initializeDeal(dealInitRequest);
             Map<String, Object> response = new HashMap<>();
             response.put("deal_id", dealId);
+            response.put("dealId", dealId);
+            response.put("id", dealId);
             response.put("message", "Deal processed successfully with contact number: " + dealInitRequest.getContactNumber());
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
         } catch (Exception e) {
@@ -124,7 +126,7 @@ public class DealController {
                     mediaType = "application/json",
                     schema = @Schema(implementation = DealResponseDto.DealDto.class),
                     examples = @ExampleObject(
-                        value = "{\"id\": 123, \"user_name\": \"John Doe\", \"contact_number\": \"+1234567890\", \"category\": \"Wedding Photography\", \"event_date\": \"2024-06-15\", \"venue\": \"Grand Hotel\", \"budget\": \"5000.00\", \"expected_gathering\": 150, \"created_at\": \"2024-01-15 10:30:00\", \"updated_at\": \"2024-01-15 10:35:00\"}"
+                        value = "{\"id\": 123, \"user_name\": \"John Doe\", \"contact_number\": \"+1234567890\", \"category\": \"Wedding Photography\", \"event_date\": \"2024-06-15\", \"venue\": \"Grand Hotel\", \"budget\": \"5000.00\", \"expected_gathering\": \"100-300\", \"created_at\": \"2024-01-15 10:30:00\", \"updated_at\": \"2024-01-15 10:35:00\"}"
                     )
                 )
             ),
@@ -143,7 +145,7 @@ public class DealController {
                 mediaType = "application/json",
                 schema = @Schema(implementation = DealUpdateRequestDto.class),
                 examples = @ExampleObject(
-                    value = "{\"name\": \"John Doe\", \"categories\": [{\"name\": \"Wedding Photography\", \"event_date\": \"2024-06-15\", \"venue\": \"Grand Hotel\", \"budget\": 5000, \"expected_gathering\": 150}, {\"name\": \"Makeup\", \"event_date\": \"2024-06-15\", \"venue\": \"Grand Hotel\", \"budget\": 3000, \"expected_gathering\": 150}]}"
+                    value = "{\"name\": \"John Doe\", \"categories\": [{\"name\": \"Photography\", \"event_date\": \"2024-06-15\", \"venue\": \"Grand Hotel\", \"budget\": 5000, \"expected_gathering\": \"100-300\"}, {\"name\": \"Makeup\", \"event_date\": \"2024-06-15\", \"venue\": \"Grand Hotel\", \"budget\": 3000, \"expected_gathering\": \"100-300\"}]}"
                 )
             )
         )

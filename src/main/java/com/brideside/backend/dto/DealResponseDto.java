@@ -63,7 +63,7 @@ public class DealResponseDto {
         private String eventDate;
         private String venue;
         private String budget;
-        private Integer expectedGathering;
+        private String expectedGathering;
         private String createdAt;
         private String updatedAt;
         
@@ -72,7 +72,7 @@ public class DealResponseDto {
         
         // Constructor
         public DealDto(Integer id, String userName, String contactNumber, String category, 
-                      String eventDate, String venue, String budget, Integer expectedGathering,
+                      String eventDate, String venue, String budget, String expectedGathering,
                       String createdAt, String updatedAt) {
             this.id = id;
             this.userName = userName;
@@ -143,11 +143,11 @@ public class DealResponseDto {
             this.budget = budget;
         }
         
-        public Integer getExpectedGathering() {
+        public String getExpectedGathering() {
             return expectedGathering;
         }
         
-        public void setExpectedGathering(Integer expectedGathering) {
+        public void setExpectedGathering(String expectedGathering) {
             this.expectedGathering = expectedGathering;
         }
         

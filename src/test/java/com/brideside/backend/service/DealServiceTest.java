@@ -54,7 +54,7 @@ class DealServiceTest {
         category1.setEventDate(LocalDate.of(2025, 10, 20));
         category1.setVenue("Test Venue");
         category1.setBudget(new BigDecimal("1000"));
-        category1.setExpectedGathering(100);
+        category1.setExpectedGathering("100");
         
         dealRequest.setCategories(Arrays.asList(category1));
     }
@@ -160,14 +160,14 @@ class DealServiceTest {
         category1.setEventDate(LocalDate.of(2024, 6, 15));
         category1.setVenue("Grand Hotel");
         category1.setBudget(new BigDecimal("5000"));
-        category1.setExpectedGathering(150);
+        category1.setExpectedGathering("100-300");
         
         DealUpdateRequestDto.CategoryDto category2 = new DealUpdateRequestDto.CategoryDto();
         category2.setName("Makeup");
         category2.setEventDate(LocalDate.of(2024, 6, 15));
         category2.setVenue("Grand Hotel");
         category2.setBudget(new BigDecimal("3000"));
-        category2.setExpectedGathering(150);
+        category2.setExpectedGathering("100-300");
         
         updateRequest.setCategories(Arrays.asList(category1, category2));
         

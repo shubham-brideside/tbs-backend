@@ -99,7 +99,7 @@ class DealControllerUnitTest {
         category.setEventDate(LocalDate.of(2025, 10, 20));
         category.setVenue("Test Venue");
         category.setBudget(new BigDecimal("1000"));
-        category.setExpectedGathering(100);
+        category.setExpectedGathering("100");
 
         request.setCategories(Arrays.asList(category));
         return request;

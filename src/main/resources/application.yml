@@ -145,11 +145,27 @@ pipedrive:
     custom-fields:
       personSource: ${PIPEDRIVE_PERSON_SOURCE_FIELD:bb67874cea1b01f4eadb549eda0033ff530ea0ba}
 
-# WhatsApp Configuration
+# WhatsApp Configuration (Meta Cloud API)
 whatsapp:
   base-url: ${WHATSAPP_BASE_URL:https://graph.facebook.com/v22.0}
   phone-number-id: ${WHATSAPP_PHONE_NUMBER_ID:812190678648433}
   access-token: ${WHATSAPP_ACCESS_TOKEN:EAARqbESmhd8BP4uCE7ZCByZC63F7v5mouajpe2jDaOPuDfC1PncFHTkFwDlUfoffy8QqeGa9iosuP8y4IAdVR8w2F90E7EdPxgmLftV8gimpD9Bp3pcUH1tKmngrWxVw58QPA698lhEjxlUxQZC4OZAnIRGnLPnluECQDgfBYuc4bXeajTri0o0j892qgQZDZD}
+
+# Phone OTP — WhatsApp uses Meta template (one body variable = code). SMS uses MSG91 Flow API.
+otp:
+  code-ttl-minutes: ${OTP_CODE_TTL_MINUTES:10}
+  resend-cooldown-seconds: ${OTP_RESEND_COOLDOWN_SECONDS:60}
+  max-verify-attempts: ${OTP_MAX_VERIFY_ATTEMPTS:5}
+  whatsapp:
+    template-name: ${OTP_WHATSAPP_TEMPLATE:otp_verification}
+    language-code: ${OTP_WHATSAPP_TEMPLATE_LANG:en}
+  sms:
+    enabled: ${OTP_SMS_ENABLED:false}
+    # Local only: logs OTP at WARN, no MSG91. Never true in production.
+    simulate: ${OTP_SMS_SIMULATE:false}
+    auth-key: ${MSG91_AUTH_KEY:}
+    flow-template-id: ${MSG91_FLOW_TEMPLATE_ID:}
+    body-var-key: ${MSG91_BODY_VAR_KEY:VAR1}
 
 # Application Info
 info:

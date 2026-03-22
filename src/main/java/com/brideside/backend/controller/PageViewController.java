@@ -64,7 +64,7 @@ public class PageViewController {
             @ApiResponse(responseCode = "500", description = "Internal server error")
     })
     @GetMapping("/count")
-    public ResponseEntity<Map<String, Object>> getViewCount(@RequestParam String pagePath) {
+    public ResponseEntity<Map<String, Object>> getViewCount(@RequestParam("page_path") String pagePath) {
         try {
             long viewCount = pageViewService.getViewCount(pagePath);
             long uniqueVisitors = pageViewService.getUniqueVisitorCount(pagePath);
@@ -90,7 +90,7 @@ public class PageViewController {
             @ApiResponse(responseCode = "500", description = "Internal server error")
     })
     @GetMapping("/unique-visitors")
-    public ResponseEntity<Map<String, Object>> getUniqueVisitorCount(@RequestParam String pagePath) {
+    public ResponseEntity<Map<String, Object>> getUniqueVisitorCount(@RequestParam("page_path") String pagePath) {
         try {
             long uniqueVisitors = pageViewService.getUniqueVisitorCount(pagePath);
             Map<String, Object> response = new HashMap<>();
@@ -115,8 +115,8 @@ public class PageViewController {
     })
     @GetMapping("/count/entity")
     public ResponseEntity<Map<String, Object>> getViewCountByEntity(
-            @RequestParam String pageType,
-            @RequestParam Integer entityId) {
+            @RequestParam("page_type") String pageType,
+            @RequestParam("entity_id") Integer entityId) {
         try {
             long viewCount = pageViewService.getViewCountByEntity(pageType, entityId);
             long uniqueVisitors = pageViewService.getUniqueVisitorCountByEntity(pageType, entityId);
@@ -143,7 +143,7 @@ public class PageViewController {
             @ApiResponse(responseCode = "500", description = "Internal server error")
     })
     @GetMapping("/statistics")
-    public ResponseEntity<PageViewResponseDto.ViewStatisticsDto> getPageStatistics(@RequestParam String pagePath) {
+    public ResponseEntity<PageViewResponseDto.ViewStatisticsDto> getPageStatistics(@RequestParam("page_path") String pagePath) {
         try {
             PageViewResponseDto.ViewStatisticsDto statistics = pageViewService.getPageStatistics(pagePath);
             return ResponseEntity.ok(statistics);
@@ -163,8 +163,8 @@ public class PageViewController {
     })
     @GetMapping("/statistics/entity")
     public ResponseEntity<PageViewResponseDto.ViewStatisticsDto> getEntityStatistics(
-            @RequestParam String pageType,
-            @RequestParam Integer entityId) {
+            @RequestParam("page_type") String pageType,
+            @RequestParam("entity_id") Integer entityId) {
         try {
             PageViewResponseDto.ViewStatisticsDto statistics = pageViewService.getEntityStatistics(pageType, entityId);
             return ResponseEntity.ok(statistics);
