@@ -61,7 +61,7 @@ public class DealController {
      */
     @Operation(
         summary = "Initialize Deal", 
-        description = "Initialize a deal with contact number. If a deal with the same contact number already exists, it updates the updated_at timestamp. Otherwise, it creates a new basic deal entry. This is the first step in the two-step deal creation process. Returns a deal ID that can be used later to update the deal with full details using the PUT /api/deals/{id} endpoint.",
+        description = "Initialize a deal with contact number and optional name. If a deal with the same contact number already exists, it updates the updated_at timestamp. Otherwise, it creates a new basic deal entry. This is the first step in the two-step deal creation process. Returns a deal ID that can be used later to update the deal with full details using the PUT /api/deals/{id} endpoint.",
         tags = {"Deal Initialization"}
     )
     @ApiResponses(value = {
@@ -72,7 +72,7 @@ public class DealController {
                     mediaType = "application/json",
                     schema = @Schema(implementation = Map.class),
                     examples = @ExampleObject(
-                        value = "{\"deal_id\": 123, \"message\": \"Deal initialized successfully with contact number: +1234567890\"}"
+                        value = "{\"deal_id\": 123, \"message\": \"Deal processed successfully with contact number: +1234567890\"}"
                     )
                 )
             ),
@@ -88,7 +88,7 @@ public class DealController {
                 mediaType = "application/json",
                 schema = @Schema(implementation = DealInitRequestDto.class),
                 examples = @ExampleObject(
-                    value = "{\"contact_number\": \"+1234567890\"}"
+                    value = "{\"name\": \"John Doe\", \"contact_number\": \"+1234567890\"}"
                 )
             )
         )

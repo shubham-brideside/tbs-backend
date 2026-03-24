@@ -201,6 +201,8 @@ public class DealService {
     @Transactional
     @CacheEvict(value = "deals", allEntries = true)
     public Integer initializeDeal(DealInitRequestDto dealInitRequest) {
+        String resolvedName = resolveInitName(dealInitRequest.getName());
+        
         // Check if a deal with the same contact number already exists
         List<Deal> existingDeals = dealRepository.findByContactNumber(dealInitRequest.getContactNumber());
         
@@ -213,6 +215,18 @@ public class DealService {
             logger.info("Found existing deal with ID: {}, contact_number: {}", 
                        existingDeal.getId(), existingDeal.getContactNumber());
             
+            if ("TBS".equals(existingDeal.getUserName())) {
+                existingDeal.setUserName(resolvedName);
+            }
+            
+            personRepository.findByPhoneAndIsDeleted(dealInitRequest.getContactNumber(), false)
+                    .ifPresent(person -> {
+                        if (person.getName() == null || person.getName().isBlank() || "TBS".equals(person.getName())) {
+                            person.setName(resolvedName);
+                            personRepository.save(person);
+                        }
+                    });
+            
             setDefaultDealFields(existingDeal);
             
             // The @UpdateTimestamp annotation will automatically update the updatedAt field
@@ -221,11 +235,11 @@ public class DealService {
             return updatedDeal.getId();
         } else {
             // Create or get person for the contact
-            Person person = createOrGetPerson("TBS", dealInitRequest.getContactNumber(), null, null);
+            Person person = createOrGetPerson(resolvedName, dealInitRequest.getContactNumber(), null, null);
             
             // Create a new basic deal with just contact number and placeholder values
             Deal deal = new Deal(
-                "TBS", // Placeholder for name - will be updated later
+                resolvedName,
                 dealInitRequest.getContactNumber(),
                 "TBS", // Placeholder for category - will be updated later
                 null, // Event date - will be updated later
@@ -244,6 +258,14 @@ public class DealService {
             logger.info("Created new deal with ID: {}", savedDeal.getId());
             return savedDeal.getId();
         }
+    }
+    
+    private String resolveInitName(String name) {
+        if (name == null) {
+            return "TBS";
+        }
+        String trimmed = name.trim();
+        return trimmed.isEmpty() ? "TBS" : trimmed;
     }
     
     /**
