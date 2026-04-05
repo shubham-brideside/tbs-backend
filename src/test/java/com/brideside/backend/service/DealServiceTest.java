@@ -51,7 +51,8 @@ class DealServiceTest {
 
     @BeforeEach
     void setUp() {
-        when(organizationRepository.findById(anyLong())).thenReturn(Optional.empty());
+        // Not every test hits setDefaultDealFields / organization lookup (e.g. getAllDeals).
+        lenient().when(organizationRepository.findById(anyLong())).thenReturn(Optional.empty());
         dealRequest = new DealRequestDto();
         dealRequest.setName("Test User");
         dealRequest.setContactNumber("1234567890");
