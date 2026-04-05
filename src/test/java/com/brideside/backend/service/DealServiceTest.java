@@ -7,6 +7,7 @@ import com.brideside.backend.dto.DealUpdateRequestDto;
 import com.brideside.backend.entity.Deal;
 import com.brideside.backend.entity.Person;
 import com.brideside.backend.repository.DealRepository;
+import com.brideside.backend.repository.OrganizationRepository;
 import com.brideside.backend.repository.PersonRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -19,10 +20,12 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
@@ -34,6 +37,9 @@ class DealServiceTest {
     
     @Mock
     private PersonRepository personRepository;
+
+    @Mock
+    private OrganizationRepository organizationRepository;
     
     @Mock
     private WhatsAppService whatsAppService;
@@ -45,6 +51,7 @@ class DealServiceTest {
 
     @BeforeEach
     void setUp() {
+        when(organizationRepository.findById(anyLong())).thenReturn(Optional.empty());
         dealRequest = new DealRequestDto();
         dealRequest.setName("Test User");
         dealRequest.setContactNumber("1234567890");
@@ -175,17 +182,14 @@ class DealServiceTest {
         existingDeal.setId(1);
         existingDeal.setUserName("TBS");
         existingDeal.setContactNumber("+1234567890");
-        existingDeal.setCategory("TBS");
         
         Deal updatedDeal = new Deal();
         updatedDeal.setId(1);
         updatedDeal.setUserName("John Doe");
-        updatedDeal.setCategory("Photography");
         
         Deal additionalDeal = new Deal();
         additionalDeal.setId(2);
         additionalDeal.setUserName("John Doe");
-        additionalDeal.setCategory("Makeup");
         
         Person mockPerson = new Person();
         mockPerson.setId(1L);

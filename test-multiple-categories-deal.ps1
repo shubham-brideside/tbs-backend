@@ -78,7 +78,7 @@ try {
     
     Write-Host "`nDeals for contact number $contactNumber :" -ForegroundColor Cyan
     foreach ($deal in $dealsForContact) {
-        Write-Host "- ID: $($deal.id), Name: $($deal.user_name), Category: $($deal.category), Budget: $($deal.budget)" -ForegroundColor White
+        Write-Host "- ID: $($deal.id), Name: $($deal.user_name), CategoryId: $($deal.categoryId), Budget: $($deal.budget)" -ForegroundColor White
     }
     
     if ($dealsForContact.Count -eq 3) {

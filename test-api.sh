@@ -120,15 +120,15 @@ echo ""
 echo "🏷️  5. READ - Getting deals by category..."
 echo "------------------------------------------"
 
-curl -X GET "$BASE_URL/category/Photography" \
+curl -X GET "$BASE_URL/category/3" \
   -H "Accept: application/json" \
   -w "\nHTTP Status: %{http_code}\n" \
   -s
 
 echo ""
-echo "🏷️  Getting deals by category (Makeup)..."
+echo "🏷️  Getting deals by category (another id)..."
 
-curl -X GET "$BASE_URL/category/Makeup" \
+curl -X GET "$BASE_URL/category/4" \
   -H "Accept: application/json" \
   -w "\nHTTP Status: %{http_code}\n" \
   -s

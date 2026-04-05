@@ -63,7 +63,7 @@ try {
     Write-Host "Updated Deal ID: $($updateResponse.id)"
     Write-Host "User Name: $($updateResponse.userName)"
     Write-Host "Contact Number: $($updateResponse.contactNumber)"
-    Write-Host "Category: $($updateResponse.category)"
+    Write-Host "CategoryId: $($updateResponse.categoryId)"
     Write-Host "Event Date: $($updateResponse.eventDate)"
     Write-Host "Venue: $($updateResponse.venue)"
     Write-Host "Budget: $($updateResponse.budget)"
@@ -83,7 +83,7 @@ try {
     Write-Host "✅ Found $($dealsForContact.Count) deals for contact $testContactNumber" -ForegroundColor Green
     
     foreach ($deal in $dealsForContact) {
-        Write-Host "  - Deal ID: $($deal.id), Category: $($deal.category), Budget: $($deal.budget)"
+        Write-Host "  - Deal ID: $($deal.id), CategoryId: $($deal.categoryId), Budget: $($deal.budget)"
     }
     
 } catch {

@@ -24,11 +24,11 @@ public interface DealRepository extends JpaRepository<Deal, Integer> {
     List<Deal> findByContactNumber(String contactNumber);
     
     /**
-     * Find all deals by category
-     * @param category the category to search for
+     * Find all deals by category id (FK to {@code categories.id})
+     * @param categoryId the category id to search for
      * @return list of deals for the given category
      */
-    List<Deal> findByCategory(String category);
+    List<Deal> findByCategoryId(Long categoryId);
     
     /**
      * Find all deals by user name and contact number

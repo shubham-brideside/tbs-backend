@@ -128,7 +128,7 @@ Write-Host "🏷️  5. READ - Getting deals by category (Photography)..." -Fore
 Write-Host "------------------------------------------" -ForegroundColor Yellow
 
 try {
-    $CategoryDeals = Invoke-RestMethod -Uri "$BaseUrl/category/Photography" -Method GET
+    $CategoryDeals = Invoke-RestMethod -Uri "$BaseUrl/category/3" -Method GET
     Write-Host "✅ Successfully retrieved deals by category" -ForegroundColor Green
     $CategoryDeals | ConvertTo-Json -Depth 3
 } catch {

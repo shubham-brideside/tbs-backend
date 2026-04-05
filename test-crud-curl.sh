@@ -103,7 +103,7 @@ echo "Getting deals by contact (9876543210)..."
 make_request "GET" "$BASE_URL/contact/9876543210" "" "200"
 
 echo "Getting deals by category (Photography)..."
-make_request "GET" "$BASE_URL/category/Photography" "" "200"
+make_request "GET" "$BASE_URL/category/3" "" "200"
 
 # 4. UPDATE OPERATIONS (PUT)
 echo "4. UPDATE OPERATIONS (PUT)"

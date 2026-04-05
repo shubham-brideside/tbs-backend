@@ -1,6 +1,7 @@
 package com.brideside.backend.dto;
 
 import com.brideside.backend.jackson.StringOrNumberAsStringDeserializer;
+import com.brideside.backend.jackson.TrimStringDeserializer;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import jakarta.validation.Valid;
@@ -66,9 +67,10 @@ public class DealUpdateRequestDto {
     public static class CategoryDto {
         
         @NotBlank(message = "Category name is required")
+        @JsonDeserialize(using = TrimStringDeserializer.class)
         @Pattern(
-                regexp = "^(Photography|Makeup|Planning & Decor)$",
-                message = "Category name must be Photography, Makeup, or Planning & Decor"
+                regexp = "^(?i)(Photography|Wedding Photography|Makeup|Planning and Decor|Planning & Decor)$",
+                message = "Category name must be Photography, Makeup, or Planning and Decor (Planning & Decor accepted)"
         )
         @Schema(description = "Service from the planning form", example = "Photography", required = true)
         private String name;

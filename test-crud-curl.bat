@@ -52,7 +52,7 @@ echo.
 echo.
 
 echo Getting deals by category (Photography)...
-curl -s -X GET "%BASE_URL%/category/Photography"
+curl -s -X GET "%BASE_URL%/category/3"
 echo.
 echo.
 

@@ -126,7 +126,7 @@ public class DealController {
                     mediaType = "application/json",
                     schema = @Schema(implementation = DealResponseDto.DealDto.class),
                     examples = @ExampleObject(
-                        value = "{\"id\": 123, \"user_name\": \"John Doe\", \"contact_number\": \"+1234567890\", \"category\": \"Wedding Photography\", \"event_date\": \"2024-06-15\", \"venue\": \"Grand Hotel\", \"budget\": \"5000.00\", \"expected_gathering\": \"100-300\", \"created_at\": \"2024-01-15 10:30:00\", \"updated_at\": \"2024-01-15 10:35:00\"}"
+                        value = "{\"id\": 123, \"user_name\": \"John Doe\", \"contact_number\": \"+1234567890\", \"categoryId\": 3, \"event_date\": \"2024-06-15\", \"venue\": \"Grand Hotel\", \"budget\": \"5000.00\", \"expected_gathering\": \"100-300\", \"created_at\": \"2024-01-15 10:30:00\", \"updated_at\": \"2024-01-15 10:35:00\"}"
                     )
                 )
             ),
@@ -210,12 +210,12 @@ public class DealController {
     }
     
     /**
-     * Get deals by category
+     * Get deals by category id (FK to {@code categories.id})
      */
-    @GetMapping("/category/{category}")
-    public ResponseEntity<List<DealResponseDto.DealDto>> getDealsByCategory(@PathVariable String category) {
+    @GetMapping("/category/{categoryId}")
+    public ResponseEntity<List<DealResponseDto.DealDto>> getDealsByCategoryId(@PathVariable Long categoryId) {
         try {
-            List<DealResponseDto.DealDto> deals = dealService.getDealsByCategory(category);
+            List<DealResponseDto.DealDto> deals = dealService.getDealsByCategoryId(categoryId);
             return ResponseEntity.ok(deals);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();

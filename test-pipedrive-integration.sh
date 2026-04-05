@@ -91,7 +91,7 @@ if [ $? -eq 0 ]; then
     
     echo "✅ Found $DEAL_COUNT deals for contact $TEST_CONTACT_NUMBER"
     
-    echo "$DEALS_FOR_CONTACT" | jq -r '.[] | "  - Deal ID: \(.id), Category: \(.category), Budget: \(.budget)"'
+    echo "$DEALS_FOR_CONTACT" | jq -r '.[] | "  - Deal ID: \(.id), CategoryId: \(.categoryId), Budget: \(.budget)"'
 else
     echo "❌ Error retrieving deals"
 fi

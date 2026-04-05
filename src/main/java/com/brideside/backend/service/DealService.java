@@ -9,7 +9,9 @@ import com.brideside.backend.entity.Person;
 import com.brideside.backend.enums.CreatedBy;
 import com.brideside.backend.enums.DealStatus;
 import com.brideside.backend.enums.DealSubSource;
+import com.brideside.backend.entity.Organization;
 import com.brideside.backend.repository.DealRepository;
+import com.brideside.backend.repository.OrganizationRepository;
 import com.brideside.backend.repository.PersonRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,6 +39,9 @@ public class DealService {
     
     @Autowired
     private PersonRepository personRepository;
+
+    @Autowired
+    private OrganizationRepository organizationRepository;
     
     @Autowired
     private WhatsAppService whatsAppService;
@@ -53,6 +58,7 @@ public class DealService {
     private static final Long DEFAULT_SOURCE_PIPELINE_ID = 67L;
     private static final Long DEFAULT_ORGANIZATION_ID = 68L;
     private static final DealStatus DEFAULT_STATUS = DealStatus.IN_PROGRESS;
+    /** Default {@code deals.category_id} when no name is given; matches {@code categories.id} for "Planning and Decor". */
     private static final Long DEFAULT_CATEGORY_ID = 3L;
     private static final String DEFAULT_DEAL_SOURCE = "DIRECT";
     private static final DealSubSource DEFAULT_DEAL_SUB_SOURCE = DealSubSource.LANDING_PAGE;
@@ -93,7 +99,6 @@ public class DealService {
             Deal deal = new Deal(
                 dealRequest.getName(),
                 dealRequest.getContactNumber(),
-                category.getName(),
                 category.getEventDate(),
                 category.getVenue(),
                 category.getBudget(),
@@ -102,6 +107,7 @@ public class DealService {
             
             // Set required fields with default values
             setDefaultDealFields(deal);
+            deal.setCategoryId(resolveCategoryIdFromName(category.getName()));
             
             // Set person_id
             deal.setPersonId(person.getId());
@@ -160,6 +166,28 @@ public class DealService {
     }
     
     /**
+     * Maps planning-form {@code categories.name} to {@code deals.category_id}:
+     * 1 Photography, 2 Makeup, 3 Planning and Decor.
+     */
+    private Long resolveCategoryIdFromName(String name) {
+        if (name == null || name.isBlank()) {
+            return DEFAULT_CATEGORY_ID;
+        }
+        String n = name.trim();
+        if (n.equalsIgnoreCase("Photography") || n.equalsIgnoreCase("Wedding Photography")) {
+            return 1L;
+        }
+        if (n.equalsIgnoreCase("Makeup")) {
+            return 2L;
+        }
+        if (n.equalsIgnoreCase("Planning and Decor") || n.equalsIgnoreCase("Planning & Decor")) {
+            return 3L;
+        }
+        throw new IllegalArgumentException(
+                "Unknown category name: \"" + name + "\". Use Photography, Makeup, or Planning and Decor.");
+    }
+    
+    /**
      * Set default fields for a deal
      * @param deal the deal to set fields on
      */
@@ -189,6 +217,22 @@ public class DealService {
             eventDates.add(deal.getEventDate());
             deal.setEventDates(eventDates);
         }
+        applyOwnerFromOrganization(deal);
+    }
+
+    /**
+     * Sets {@link Deal#setOwnerId(Long)} from {@link Organization#getOwnerId()} for the deal's {@link Deal#getOrganizationId()}.
+     */
+    private void applyOwnerFromOrganization(Deal deal) {
+        Long orgId = deal.getOrganizationId();
+        if (orgId == null) {
+            deal.setOwnerId(null);
+            return;
+        }
+        deal.setOwnerId(
+                organizationRepository.findById(orgId)
+                        .map(Organization::getOwnerId)
+                        .orElse(null));
     }
     
     /**
@@ -227,7 +271,6 @@ public class DealService {
             Deal deal = new Deal(
                 "TBS", // Placeholder for name - will be updated later
                 dealInitRequest.getContactNumber(),
-                "TBS", // Placeholder for category - will be updated later
                 null, // Event date - will be updated later
                 null, // Venue - will be updated later
                 null, // Budget - will be updated later
@@ -288,14 +331,14 @@ public class DealService {
     }
     
     /**
-     * Get deals by category
-     * @param category the category to search for
+     * Get deals by category id
+     * @param categoryId FK to {@code categories.id}
      * @return list of deals for the given category
      */
     @Transactional(readOnly = true)
-    @Cacheable(value = "deals", key = "'category_' + #category")
-    public List<DealResponseDto.DealDto> getDealsByCategory(String category) {
-        List<Deal> deals = dealRepository.findByCategory(category);
+    @Cacheable(value = "deals", key = "'category_' + #categoryId")
+    public List<DealResponseDto.DealDto> getDealsByCategoryId(Long categoryId) {
+        List<Deal> deals = dealRepository.findByCategoryId(categoryId);
         return deals.stream()
                    .map(this::convertToDealDto)
                    .toList();
@@ -336,7 +379,6 @@ public class DealService {
             
             existingDeal.setUserName(dealRequest.getName());
             existingDeal.setContactNumber(dealRequest.getContactNumber());
-            existingDeal.setCategory(category.getName());
             existingDeal.setEventDate(category.getEventDate());
             existingDeal.setVenue(category.getVenue());
             existingDeal.setBudget(category.getBudget());
@@ -351,6 +393,7 @@ public class DealService {
                 eventDates.add(category.getEventDate());
                 existingDeal.setEventDates(eventDates);
             }
+            existingDeal.setCategoryId(resolveCategoryIdFromName(category.getName()));
         }
         
         Deal updatedDeal = dealRepository.save(existingDeal);
@@ -371,7 +414,7 @@ public class DealService {
                                         .orElseThrow(() -> new RuntimeException("Deal not found with id: " + id));
         
         // Check if this deal was initialized (has placeholder values)
-        if (!"TBS".equals(existingDeal.getUserName()) || !"TBS".equals(existingDeal.getCategory())) {
+        if (!"TBS".equals(existingDeal.getUserName())) {
             throw new RuntimeException("Deal with id " + id + " has already been fully configured");
         }
         
@@ -400,7 +443,6 @@ public class DealService {
         
         // Update the existing deal with real data
         existingDeal.setUserName(userName);
-        existingDeal.setCategory(firstCategory.getName());
         existingDeal.setEventDate(firstCategory.getEventDate());
         existingDeal.setVenue(firstCategory.getVenue());
         existingDeal.setBudget(firstCategory.getBudget());
@@ -417,6 +459,7 @@ public class DealService {
         }
         
         setDefaultDealFields(existingDeal);
+        existingDeal.setCategoryId(resolveCategoryIdFromName(firstCategory.getName()));
         
         // Set person_id
         existingDeal.setPersonId(person.getId());
@@ -434,7 +477,6 @@ public class DealService {
                 Deal additionalDeal = new Deal(
                     userName,
                     contactNumber,
-                    category.getName(),
                     category.getEventDate(),
                     category.getVenue(),
                     category.getBudget(),
@@ -443,6 +485,7 @@ public class DealService {
                 
                 // Set required fields with default values
                 setDefaultDealFields(additionalDeal);
+                additionalDeal.setCategoryId(resolveCategoryIdFromName(category.getName()));
                 
                 // Set person_id
                 additionalDeal.setPersonId(person.getId());
@@ -510,7 +553,7 @@ public class DealService {
             deal.getId(),
             deal.getUserName(),
             deal.getContactNumber(),
-            deal.getCategory(),
+            deal.getCategoryId(),
             deal.getEventDate() != null ? deal.getEventDate().format(DATE_FORMATTER) : null,
             deal.getVenue(),
             deal.getBudget() != null ? deal.getBudget().toString() : null,

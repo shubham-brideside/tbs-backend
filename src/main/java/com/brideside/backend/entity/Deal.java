@@ -45,10 +45,6 @@ public class Deal {
     @Column(name = "contact_number", nullable = false, length = 20)
     private String contactNumberLegacy;
     
-    @Column(name = "category", nullable = false, length = 50)
-    @NotBlank(message = "Category is required")
-    private String category;
-    
     @Column(name = "event_date")
     private LocalDate eventDate;
     
@@ -141,6 +137,10 @@ public class Deal {
     
     @Column(name = "organization_id")
     private Long organizationId;
+
+    /** FK to {@code users.id}; copied from {@link Organization#getOwnerId()} when {@link #organizationId} is set. */
+    @Column(name = "owner_id")
+    private Long ownerId;
     
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
@@ -173,12 +173,11 @@ public class Deal {
     public Deal() {}
     
     // Constructor with all fields
-    public Deal(String userName, String contactNumber, String category, LocalDate eventDate, 
+    public Deal(String userName, String contactNumber, LocalDate eventDate,
                 String venue, BigDecimal budget, String expectedGathering) {
         this.userName = userName;
         this.contactNumber = contactNumber;
         this.contactNumberLegacy = contactNumber;
-        this.category = category;
         this.eventDate = eventDate;
         this.venue = venue;
         this.budget = budget;
@@ -209,14 +208,6 @@ public class Deal {
     public void setContactNumber(String contactNumber) {
         this.contactNumber = contactNumber;
         this.contactNumberLegacy = contactNumber;
-    }
-    
-    public String getCategory() {
-        return category;
-    }
-    
-    public void setCategory(String category) {
-        this.category = category;
     }
     
     public LocalDate getEventDate() {
@@ -338,6 +329,14 @@ public class Deal {
     public void setOrganizationId(Long organizationId) {
         this.organizationId = organizationId;
     }
+
+    public Long getOwnerId() {
+        return ownerId;
+    }
+
+    public void setOwnerId(Long ownerId) {
+        this.ownerId = ownerId;
+    }
     
     public DealStatus getStatus() {
         return status;
@@ -409,7 +408,7 @@ public class Deal {
                 "id=" + id +
                 ", userName='" + userName + '\'' +
                 ", contactNumber='" + contactNumber + '\'' +
-                ", category='" + category + '\'' +
+                ", categoryId=" + categoryId +
                 ", eventDate=" + eventDate +
                 ", venue='" + venue + '\'' +
                 ", budget=" + budget +

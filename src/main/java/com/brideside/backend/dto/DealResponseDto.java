@@ -59,7 +59,7 @@ public class DealResponseDto {
         private Integer id;
         private String userName;
         private String contactNumber;
-        private String category;
+        private Long categoryId;
         private String eventDate;
         private String venue;
         private String budget;
@@ -71,13 +71,13 @@ public class DealResponseDto {
         public DealDto() {}
         
         // Constructor
-        public DealDto(Integer id, String userName, String contactNumber, String category, 
+        public DealDto(Integer id, String userName, String contactNumber, Long categoryId,
                       String eventDate, String venue, String budget, String expectedGathering,
                       String createdAt, String updatedAt) {
             this.id = id;
             this.userName = userName;
             this.contactNumber = contactNumber;
-            this.category = category;
+            this.categoryId = categoryId;
             this.eventDate = eventDate;
             this.venue = venue;
             this.budget = budget;
@@ -111,12 +111,12 @@ public class DealResponseDto {
             this.contactNumber = contactNumber;
         }
         
-        public String getCategory() {
-            return category;
+        public Long getCategoryId() {
+            return categoryId;
         }
         
-        public void setCategory(String category) {
-            this.category = category;
+        public void setCategoryId(Long categoryId) {
+            this.categoryId = categoryId;
         }
         
         public String getEventDate() {
@@ -173,7 +173,7 @@ public class DealResponseDto {
                     "id=" + id +
                     ", userName='" + userName + '\'' +
                     ", contactNumber='" + contactNumber + '\'' +
-                    ", category='" + category + '\'' +
+                    ", categoryId=" + categoryId +
                     ", eventDate='" + eventDate + '\'' +
                     ", venue='" + venue + '\'' +
                     ", budget='" + budget + '\'' +

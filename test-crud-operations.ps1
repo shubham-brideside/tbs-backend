@@ -140,7 +140,7 @@ $getByContactResult = Invoke-ApiRequest -Uri "$BASE_URL/contact/9876543210"
 Show-Result -Operation "Get Deals by Contact (9876543210)" -Result $getByContactResult
 
 # Get deals by category
-$getByCategoryResult = Invoke-ApiRequest -Uri "$BASE_URL/category/Photography"
+$getByCategoryResult = Invoke-ApiRequest -Uri "$BASE_URL/category/3"
 Show-Result -Operation "Get Deals by Category (Photography)" -Result $getByCategoryResult
 
 # 4. UPDATE OPERATIONS (PUT)
