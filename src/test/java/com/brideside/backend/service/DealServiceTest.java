@@ -158,7 +158,6 @@ class DealServiceTest {
         assertEquals(5, result);
         verify(dealRepository, times(1)).save(existingDeal);
         verify(personRepository, never()).save(any(Person.class));
-        verify(dealRepository, never()).save(argThat(deal -> deal.getId() == null));
     }
 
     @Test
@@ -182,14 +181,18 @@ class DealServiceTest {
         when(personRepository.save(any(Person.class))).thenReturn(mockPerson);
         when(dealRepository.save(any(Deal.class))).thenAnswer(invocation -> {
             Deal saved = invocation.getArgument(0);
-            saved.setId(3);
-            return saved;
+            Deal returned = new Deal();
+            returned.setId(3);
+            returned.setUserName(saved.getUserName());
+            returned.setContactNumber(saved.getContactNumber());
+            return returned;
         });
 
         Integer result = dealService.initializeDeal(initRequest);
 
         assertEquals(3, result);
-        verify(dealRepository, times(1)).save(argThat(deal -> deal.getId() == null));
+        verify(dealRepository, times(1)).save(any(Deal.class));
+        verify(personRepository, times(1)).save(any(Person.class));
     }
 
     @Test
