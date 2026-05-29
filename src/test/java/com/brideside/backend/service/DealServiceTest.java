@@ -158,6 +158,60 @@ class DealServiceTest {
     }
 
     @Test
+    void testUpdateDealWithoutContactNumber_DefaultCategoryWhenOmitted() {
+        DealUpdateRequestDto updateRequest = new DealUpdateRequestDto();
+        updateRequest.setName("John Doe");
+
+        Deal existingDeal = new Deal();
+        existingDeal.setId(1);
+        existingDeal.setUserName("TBS");
+        existingDeal.setContactNumber("+1234567890");
+
+        Deal updatedDeal = new Deal();
+        updatedDeal.setId(1);
+        updatedDeal.setUserName("John Doe");
+        updatedDeal.setCategoryId(4L);
+
+        Person mockPerson = new Person();
+        mockPerson.setId(1L);
+        mockPerson.setName("TBS");
+
+        when(dealRepository.findById(1)).thenReturn(Optional.of(existingDeal));
+        when(personRepository.findByPhoneAndIsDeleted("+1234567890", false)).thenReturn(Optional.of(mockPerson));
+        when(personRepository.save(any(Person.class))).thenReturn(mockPerson);
+        when(dealRepository.save(any(Deal.class))).thenAnswer(invocation -> {
+            Deal saved = invocation.getArgument(0);
+            assertEquals(4L, saved.getCategoryId());
+            return updatedDeal;
+        });
+
+        DealResponseDto.DealDto result = dealService.updateDealWithoutContactNumber(1, updateRequest);
+
+        assertNotNull(result);
+        verify(dealRepository, times(1)).save(any(Deal.class));
+    }
+
+    @Test
+    void testCreateDeals_DefaultCategoryWhenOmitted() {
+        dealRequest.setCategories(null);
+
+        Person mockPerson = new Person();
+        mockPerson.setId(1L);
+        when(personRepository.findByPhoneAndIsDeleted(anyString(), eq(false))).thenReturn(Optional.empty());
+        when(personRepository.save(any(Person.class))).thenReturn(mockPerson);
+        when(dealRepository.save(any(Deal.class))).thenAnswer(invocation -> {
+            Deal saved = invocation.getArgument(0);
+            assertEquals(4L, saved.getCategoryId());
+            return saved;
+        });
+
+        DealResponseDto result = dealService.createDeals(dealRequest);
+
+        assertNotNull(result);
+        assertEquals(1, result.getCreatedDeals().size());
+    }
+
+    @Test
     void testUpdateDealWithoutContactNumber_MultipleCategories() {
         // Given
         DealUpdateRequestDto updateRequest = new DealUpdateRequestDto();

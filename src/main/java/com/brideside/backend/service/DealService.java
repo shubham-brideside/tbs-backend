@@ -58,8 +58,9 @@ public class DealService {
     private static final Long DEFAULT_SOURCE_PIPELINE_ID = 67L;
     private static final Long DEFAULT_ORGANIZATION_ID = 68L;
     private static final DealStatus DEFAULT_STATUS = DealStatus.IN_PROGRESS;
-    /** Default {@code deals.category_id} when no name is given; matches {@code categories.id} for "Planning and Decor". */
-    private static final Long DEFAULT_CATEGORY_ID = 3L;
+    /** Default {@code deals.category_id}; matches {@code categories.id} for "Planning". */
+    private static final Long DEFAULT_CATEGORY_ID = 4L;
+    private static final String DEFAULT_CATEGORY_NAME = "Planning";
     private static final String DEFAULT_DEAL_SOURCE = "DIRECT";
     private static final DealSubSource DEFAULT_DEAL_SUB_SOURCE = DealSubSource.LANDING_PAGE;
     private static final CreatedBy DEFAULT_CREATED_BY = CreatedBy.BOT;
@@ -73,8 +74,7 @@ public class DealService {
     private static final String DEFAULT_PERSON_SOURCE = "DIRECT";
     private static final DealSubSource DEFAULT_PERSON_SUB_SOURCE = DealSubSource.LANDING_PAGE;
     private static final Long DEFAULT_PERSON_ORGANIZATION_ID = 68L;
-    private static final Long DEFAULT_PERSON_OWNER_ID = 69L;
-    private static final Long DEFAULT_PERSON_CATEGORY_ID = 3L;
+    private static final Long DEFAULT_PERSON_CATEGORY_ID = 4L;
     
     /**
      * Create multiple deals from a single request
@@ -85,17 +85,16 @@ public class DealService {
     @CacheEvict(value = "deals", allEntries = true)
     public DealResponseDto createDeals(DealRequestDto dealRequest) {
         List<DealResponseDto.DealDto> createdDeals = new ArrayList<>();
+        List<DealRequestDto.CategoryDto> categories = categoriesOrDefault(dealRequest.getCategories());
         
         // Create or get person for the contact
-        LocalDate firstEventDate = dealRequest.getCategories().isEmpty() ? null : 
-                dealRequest.getCategories().get(0).getEventDate();
-        String firstVenue = dealRequest.getCategories().isEmpty() ? null : 
-                dealRequest.getCategories().get(0).getVenue();
+        LocalDate firstEventDate = categories.isEmpty() ? null : categories.get(0).getEventDate();
+        String firstVenue = categories.isEmpty() ? null : categories.get(0).getVenue();
         Person person = createOrGetPerson(dealRequest.getName(), dealRequest.getContactNumber(), 
                 firstVenue, firstEventDate);
         
         // Create a separate deal for each category
-        for (DealRequestDto.CategoryDto category : dealRequest.getCategories()) {
+        for (DealRequestDto.CategoryDto category : categories) {
             Deal deal = new Deal(
                 dealRequest.getName(),
                 dealRequest.getContactNumber(),
@@ -156,7 +155,7 @@ public class DealService {
         
         person.setLeadDate(LocalDate.now());
         person.setOrganizationId(DEFAULT_PERSON_ORGANIZATION_ID);
-        person.setOwnerId(DEFAULT_PERSON_OWNER_ID);
+        person.setOwnerId(resolveOwnerIdFromOrganization(DEFAULT_PERSON_ORGANIZATION_ID));
         person.setCategoryId(DEFAULT_PERSON_CATEGORY_ID);
         person.setIsDeleted(false);
         
@@ -167,7 +166,7 @@ public class DealService {
     
     /**
      * Maps planning-form {@code categories.name} to {@code deals.category_id}:
-     * 1 Photography, 2 Makeup, 3 Planning and Decor.
+     * 1 Photography, 2 Makeup, 3 Planning and Decor, 4 Planning.
      */
     private Long resolveCategoryIdFromName(String name) {
         if (name == null || name.isBlank()) {
@@ -183,8 +182,29 @@ public class DealService {
         if (n.equalsIgnoreCase("Planning and Decor") || n.equalsIgnoreCase("Planning & Decor")) {
             return 3L;
         }
+        if (n.equalsIgnoreCase("Planning")) {
+            return 4L;
+        }
         throw new IllegalArgumentException(
-                "Unknown category name: \"" + name + "\". Use Photography, Makeup, or Planning and Decor.");
+                "Unknown category name: \"" + name + "\". Use Photography, Makeup, Planning and Decor, or Planning.");
+    }
+
+    private List<DealRequestDto.CategoryDto> categoriesOrDefault(List<DealRequestDto.CategoryDto> categories) {
+        if (categories == null || categories.isEmpty()) {
+            DealRequestDto.CategoryDto defaultCategory = new DealRequestDto.CategoryDto();
+            defaultCategory.setName(DEFAULT_CATEGORY_NAME);
+            return List.of(defaultCategory);
+        }
+        return categories;
+    }
+
+    private List<DealUpdateRequestDto.CategoryDto> updateCategoriesOrDefault(List<DealUpdateRequestDto.CategoryDto> categories) {
+        if (categories == null || categories.isEmpty()) {
+            DealUpdateRequestDto.CategoryDto defaultCategory = new DealUpdateRequestDto.CategoryDto();
+            defaultCategory.setName(DEFAULT_CATEGORY_NAME);
+            return List.of(defaultCategory);
+        }
+        return categories;
     }
     
     /**
@@ -224,15 +244,16 @@ public class DealService {
      * Sets {@link Deal#setOwnerId(Long)} from {@link Organization#getOwnerId()} for the deal's {@link Deal#getOrganizationId()}.
      */
     private void applyOwnerFromOrganization(Deal deal) {
-        Long orgId = deal.getOrganizationId();
-        if (orgId == null) {
-            deal.setOwnerId(null);
-            return;
+        deal.setOwnerId(resolveOwnerIdFromOrganization(deal.getOrganizationId()));
+    }
+
+    private Long resolveOwnerIdFromOrganization(Long organizationId) {
+        if (organizationId == null) {
+            return null;
         }
-        deal.setOwnerId(
-                organizationRepository.findById(orgId)
-                        .map(Organization::getOwnerId)
-                        .orElse(null));
+        return organizationRepository.findById(organizationId)
+                .map(Organization::getOwnerId)
+                .orElse(null);
     }
     
     /**
@@ -369,32 +390,31 @@ public class DealService {
                                         .orElseThrow(() -> new RuntimeException("Deal not found with id: " + id));
         
         // Update the deal with new data (assuming single category for update)
-        if (!dealRequest.getCategories().isEmpty()) {
-            DealRequestDto.CategoryDto category = dealRequest.getCategories().get(0);
-            
-            // Create or get person for the contact
-            Person person = createOrGetPerson(dealRequest.getName(), dealRequest.getContactNumber(), 
-                    category.getVenue(), category.getEventDate());
-            existingDeal.setPersonId(person.getId());
-            
-            existingDeal.setUserName(dealRequest.getName());
-            existingDeal.setContactNumber(dealRequest.getContactNumber());
-            existingDeal.setEventDate(category.getEventDate());
-            existingDeal.setVenue(category.getVenue());
-            existingDeal.setBudget(category.getBudget());
-            existingDeal.setExpectedGathering(category.getExpectedGathering());
-            // Set value from budget
-            if (category.getBudget() != null) {
-                existingDeal.setValue(category.getBudget());
-            }
-            // Set event_dates from event_date
-            if (category.getEventDate() != null) {
-                List<LocalDate> eventDates = new ArrayList<>();
-                eventDates.add(category.getEventDate());
-                existingDeal.setEventDates(eventDates);
-            }
-            existingDeal.setCategoryId(resolveCategoryIdFromName(category.getName()));
+        List<DealRequestDto.CategoryDto> categories = categoriesOrDefault(dealRequest.getCategories());
+        DealRequestDto.CategoryDto category = categories.get(0);
+        
+        // Create or get person for the contact
+        Person person = createOrGetPerson(dealRequest.getName(), dealRequest.getContactNumber(), 
+                category.getVenue(), category.getEventDate());
+        existingDeal.setPersonId(person.getId());
+        
+        existingDeal.setUserName(dealRequest.getName());
+        existingDeal.setContactNumber(dealRequest.getContactNumber());
+        existingDeal.setEventDate(category.getEventDate());
+        existingDeal.setVenue(category.getVenue());
+        existingDeal.setBudget(category.getBudget());
+        existingDeal.setExpectedGathering(category.getExpectedGathering());
+        // Set value from budget
+        if (category.getBudget() != null) {
+            existingDeal.setValue(category.getBudget());
         }
+        // Set event_dates from event_date
+        if (category.getEventDate() != null) {
+            List<LocalDate> eventDates = new ArrayList<>();
+            eventDates.add(category.getEventDate());
+            existingDeal.setEventDates(eventDates);
+        }
+        existingDeal.setCategoryId(resolveCategoryIdFromName(category.getName()));
         
         Deal updatedDeal = dealRepository.save(existingDeal);
         return convertToDealDto(updatedDeal);
@@ -418,15 +438,13 @@ public class DealService {
             throw new RuntimeException("Deal with id " + id + " has already been fully configured");
         }
         
-        if (dealUpdateRequest.getCategories().isEmpty()) {
-            throw new RuntimeException("At least one category is required");
-        }
+        List<DealUpdateRequestDto.CategoryDto> categories = updateCategoriesOrDefault(dealUpdateRequest.getCategories());
         
         String contactNumber = existingDeal.getContactNumber();
         String userName = dealUpdateRequest.getName();
         
         // Create or get person for the contact
-        DealUpdateRequestDto.CategoryDto firstCategory = dealUpdateRequest.getCategories().get(0);
+        DealUpdateRequestDto.CategoryDto firstCategory = categories.get(0);
         Person person = createOrGetPerson(userName, contactNumber, firstCategory.getVenue(), firstCategory.getEventDate());
         
         // Update person with latest information if it was a placeholder
@@ -470,9 +488,9 @@ public class DealService {
         logger.info("Successfully saved deal {} to database", updatedDeal.getId());
         
         // If there are additional categories, create separate deals for them
-        if (dealUpdateRequest.getCategories().size() > 1) {
-            for (int i = 1; i < dealUpdateRequest.getCategories().size(); i++) {
-                DealUpdateRequestDto.CategoryDto category = dealUpdateRequest.getCategories().get(i);
+        if (categories.size() > 1) {
+            for (int i = 1; i < categories.size(); i++) {
+                DealUpdateRequestDto.CategoryDto category = categories.get(i);
                 
                 Deal additionalDeal = new Deal(
                     userName,
@@ -499,7 +517,7 @@ public class DealService {
             boolean sent = whatsAppService.sendDealConfirmation(
                 contactNumber,
                 userName,
-                dealUpdateRequest.getCategories(),
+                categories,
                 firstCategory.getEventDate(),
                 firstCategory.getVenue()
             );

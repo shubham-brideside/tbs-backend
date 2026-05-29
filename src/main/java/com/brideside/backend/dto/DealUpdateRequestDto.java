@@ -6,7 +6,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
@@ -23,9 +22,8 @@ public class DealUpdateRequestDto {
     @Schema(description = "Name of the user", example = "John Doe", required = true)
     private String name;
     
-    @NotEmpty(message = "Categories list cannot be empty")
     @Valid
-    @Schema(description = "List of categories for the deal", required = true)
+    @Schema(description = "List of categories for the deal; defaults to Planning when omitted")
     private List<CategoryDto> categories;
     
     // Default constructor
@@ -69,10 +67,10 @@ public class DealUpdateRequestDto {
         @NotBlank(message = "Category name is required")
         @JsonDeserialize(using = TrimStringDeserializer.class)
         @Pattern(
-                regexp = "^(?i)(Photography|Wedding Photography|Makeup|Planning and Decor|Planning & Decor)$",
-                message = "Category name must be Photography, Makeup, or Planning and Decor (Planning & Decor accepted)"
+                regexp = "^(?i)(Photography|Wedding Photography|Makeup|Planning and Decor|Planning & Decor|Planning)$",
+                message = "Category name must be Photography, Makeup, Planning and Decor, Planning & Decor, or Planning"
         )
-        @Schema(description = "Service from the planning form", example = "Photography", required = true)
+        @Schema(description = "Service from the planning form", example = "Planning", required = true)
         private String name;
         
         @JsonProperty("event_date")
