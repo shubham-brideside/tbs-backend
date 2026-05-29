@@ -3,6 +3,9 @@ spring:
     activate:
       on-profile: azure
   
+  jackson:
+    time-zone: Asia/Kolkata
+
   datasource:
     hikari:
       maximum-pool-size: 20

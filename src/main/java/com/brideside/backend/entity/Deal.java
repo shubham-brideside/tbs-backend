@@ -4,18 +4,16 @@ import com.brideside.backend.converter.JsonListDateConverter;
 import com.brideside.backend.enums.CreatedBy;
 import com.brideside.backend.enums.DealStatus;
 import com.brideside.backend.enums.DealSubSource;
+import com.brideside.backend.util.IstTimestamps;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.PositiveOrZero;
-import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -65,32 +63,24 @@ public class Deal {
     @Column(name = "expected_gathering", length = 64)
     private String expectedGathering;
     
-    @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
     
-    @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
     
     @PrePersist
     protected void onCreate() {
         syncContactNumberColumns();
-        // Explicitly set timestamps in IST timezone to ensure correct storage
-        LocalDateTime now = LocalDateTime.now(ZoneId.of("Asia/Kolkata"));
-        if (createdAt == null) {
-            createdAt = now;
-        }
-        if (updatedAt == null) {
-            updatedAt = now;
-        }
+        LocalDateTime now = IstTimestamps.now();
+        createdAt = now;
+        updatedAt = now;
     }
     
     @PreUpdate
     protected void onUpdate() {
         syncContactNumberColumns();
-        // Explicitly set updated timestamp in IST timezone
-        updatedAt = LocalDateTime.now(ZoneId.of("Asia/Kolkata"));
+        updatedAt = IstTimestamps.now();
     }
 
     /**

@@ -2,13 +2,11 @@ package com.brideside.backend.entity;
 
 import com.brideside.backend.enums.DealSubSource;
 import com.brideside.backend.enums.PersonSource;
+import com.brideside.backend.util.IstTimestamps;
 import jakarta.persistence.*;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 
 @Entity
 @Table(name = "persons")
@@ -60,30 +58,22 @@ public class Person {
     @org.hibernate.annotations.ColumnDefault("0")
     private Boolean isDeleted = false;
     
-    @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
     
-    @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
     
     @PrePersist
     protected void onCreate() {
-        // Explicitly set timestamps in IST timezone to ensure correct storage
-        LocalDateTime now = LocalDateTime.now(ZoneId.of("Asia/Kolkata"));
-        if (createdAt == null) {
-            createdAt = now;
-        }
-        if (updatedAt == null) {
-            updatedAt = now;
-        }
+        LocalDateTime now = IstTimestamps.now();
+        createdAt = now;
+        updatedAt = now;
     }
     
     @PreUpdate
     protected void onUpdate() {
-        // Explicitly set updated timestamp in IST timezone
-        updatedAt = LocalDateTime.now(ZoneId.of("Asia/Kolkata"));
+        updatedAt = IstTimestamps.now();
     }
     
     // Default constructor
