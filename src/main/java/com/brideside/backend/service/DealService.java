@@ -27,6 +27,7 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @Transactional
@@ -92,24 +93,43 @@ public class DealService {
         String firstVenue = categories.isEmpty() ? null : categories.get(0).getVenue();
         Person person = createOrGetPerson(dealRequest.getName(), dealRequest.getContactNumber(), 
                 firstVenue, firstEventDate);
+
+        Optional<Deal> reusableDeal = findReusableDeal(dealRequest.getContactNumber());
         
         // Create a separate deal for each category
-        for (DealRequestDto.CategoryDto category : categories) {
-            Deal deal = new Deal(
-                dealRequest.getName(),
-                dealRequest.getContactNumber(),
-                category.getEventDate(),
-                category.getVenue(),
-                category.getBudget(),
-                category.getExpectedGathering()
-            );
-            
-            // Set required fields with default values
-            setDefaultDealFields(deal);
-            deal.setCategoryId(resolveCategoryIdFromName(category.getName()));
-            
-            // Set person_id
-            deal.setPersonId(person.getId());
+        for (int i = 0; i < categories.size(); i++) {
+            DealRequestDto.CategoryDto category = categories.get(i);
+            Deal deal;
+
+            if (i == 0 && reusableDeal.isPresent()) {
+                deal = reusableDeal.get();
+                deal.setUserName(dealRequest.getName());
+                deal.setContactNumber(dealRequest.getContactNumber());
+                deal.setEventDate(category.getEventDate());
+                deal.setVenue(category.getVenue());
+                deal.setBudget(category.getBudget());
+                deal.setExpectedGathering(category.getExpectedGathering());
+                if (category.getBudget() != null) {
+                    deal.setValue(category.getBudget());
+                }
+                if (category.getEventDate() != null) {
+                    List<LocalDate> eventDates = new ArrayList<>();
+                    eventDates.add(category.getEventDate());
+                    deal.setEventDates(eventDates);
+                }
+                deal.setCategoryId(resolveCategoryIdFromName(category.getName()));
+                deal.setPersonId(person.getId());
+            } else {
+                deal = buildNewDeal(
+                        dealRequest.getName(),
+                        dealRequest.getContactNumber(),
+                        category.getEventDate(),
+                        category.getVenue(),
+                        category.getBudget(),
+                        category.getExpectedGathering(),
+                        person.getId());
+                deal.setCategoryId(resolveCategoryIdFromName(category.getName()));
+            }
             
             Deal savedDeal = dealRepository.save(deal);
             createdDeals.add(convertToDealDto(savedDeal));
@@ -130,13 +150,13 @@ public class DealService {
      * @return the created or existing person
      */
     private Person createOrGetPerson(String name, String contactNumber, String venue, LocalDate eventDate) {
-        // Check if person already exists with this phone number
-        Person existingPerson = personRepository.findByPhoneAndIsDeleted(contactNumber, false)
-                .orElse(null);
-        
-        if (existingPerson != null) {
-            logger.info("Found existing person with ID: {} for phone: {}", existingPerson.getId(), contactNumber);
-            return existingPerson;
+        Optional<Person> existingPerson = personRepository
+                .findFirstByPhoneAndIsDeletedOrderByCreatedAtDesc(contactNumber, false);
+
+        if (existingPerson.isPresent()) {
+            Person person = existingPerson.get();
+            logger.info("Reusing latest person with ID: {} for phone: {}", person.getId(), contactNumber);
+            return person;
         }
         
         // Create new person
@@ -225,6 +245,8 @@ public class DealService {
         deal.setCreatedByName(DEFAULT_CREATED_BY_NAME);
         deal.setCreatedByUserId(null);
         deal.setStageId(DEFAULT_STAGE_ID);
+        deal.setIsDeleted(false);
+        deal.setDealOwnerOverride(false);
         // Set value from budget if budget is provided, otherwise set to ZERO
         if (deal.getBudget() != null) {
             deal.setValue(deal.getBudget());
@@ -255,6 +277,29 @@ public class DealService {
                 .map(Organization::getOwnerId)
                 .orElse(null);
     }
+
+    /**
+     * Reuse only when an active landing-page lead is still in progress.
+     */
+    private boolean shouldReuseExistingDeal(Deal deal) {
+        return !Boolean.TRUE.equals(deal.getIsDeleted())
+                && deal.getStatus() == DealStatus.IN_PROGRESS
+                && deal.getDealSubSource() == DealSubSource.LANDING_PAGE;
+    }
+
+    private Optional<Deal> findReusableDeal(String contactNumber) {
+        return dealRepository.findByContactNumberOrderByCreatedAtDesc(contactNumber).stream()
+                .filter(this::shouldReuseExistingDeal)
+                .findFirst();
+    }
+
+    private Deal buildNewDeal(String userName, String contactNumber, LocalDate eventDate,
+                              String venue, BigDecimal budget, String expectedGathering, Long personId) {
+        Deal deal = new Deal(userName, contactNumber, eventDate, venue, budget, expectedGathering);
+        setDefaultDealFields(deal);
+        deal.setPersonId(personId);
+        return deal;
+    }
     
     /**
      * Initialize a deal with just contact number
@@ -266,48 +311,23 @@ public class DealService {
     @Transactional
     @CacheEvict(value = "deals", allEntries = true)
     public Integer initializeDeal(DealInitRequestDto dealInitRequest) {
-        // Check if a deal with the same contact number already exists
-        List<Deal> existingDeals = dealRepository.findByContactNumber(dealInitRequest.getContactNumber());
-        
-        logger.info("Checking for existing deals with contact number: {}, found: {}", 
-                   dealInitRequest.getContactNumber(), existingDeals.size());
-        
-        if (!existingDeals.isEmpty()) {
-            // If deals exist with the same contact number, update the first one's timestamp
-            Deal existingDeal = existingDeals.get(0);
-            logger.info("Found existing deal with ID: {}, contact_number: {}", 
-                       existingDeal.getId(), existingDeal.getContactNumber());
-            
-            setDefaultDealFields(existingDeal);
-            
-            // The @UpdateTimestamp annotation will automatically update the updatedAt field
-            Deal updatedDeal = dealRepository.save(existingDeal);
-            logger.info("Updated existing deal {} timestamp", updatedDeal.getId());
-            return updatedDeal.getId();
-        } else {
-            // Create or get person for the contact
-            Person person = createOrGetPerson("TBS", dealInitRequest.getContactNumber(), null, null);
-            
-            // Create a new basic deal with just contact number and placeholder values
-            Deal deal = new Deal(
-                "TBS", // Placeholder for name - will be updated later
-                dealInitRequest.getContactNumber(),
-                null, // Event date - will be updated later
-                null, // Venue - will be updated later
-                null, // Budget - will be updated later
-                null  // Expected gathering - will be updated later
-            );
-            
-            // Set required fields with default values
-            setDefaultDealFields(deal);
-            
-            // Set person_id
-            deal.setPersonId(person.getId());
-            
-            Deal savedDeal = dealRepository.save(deal);
-            logger.info("Created new deal with ID: {}", savedDeal.getId());
-            return savedDeal.getId();
+        String contactNumber = dealInitRequest.getContactNumber();
+
+        Optional<Deal> reusableDeal = findReusableDeal(contactNumber);
+        if (reusableDeal.isPresent()) {
+            Deal existingDeal = reusableDeal.get();
+            logger.info("Reusing deal {} for contact {} (IN_PROGRESS + LANDING_PAGE)",
+                    existingDeal.getId(), contactNumber);
+            return dealRepository.save(existingDeal).getId();
         }
+
+        logger.info("Creating new deal for contact {} — no reusable IN_PROGRESS LANDING_PAGE deal found",
+                contactNumber);
+
+        Person person = createOrGetPerson("TBS", contactNumber, null, null);
+        Deal savedDeal = dealRepository.save(buildNewDeal("TBS", contactNumber, null, null, null, null, person.getId()));
+        logger.info("Created new deal with ID: {}", savedDeal.getId());
+        return savedDeal.getId();
     }
     
     /**
@@ -492,21 +512,16 @@ public class DealService {
             for (int i = 1; i < categories.size(); i++) {
                 DealUpdateRequestDto.CategoryDto category = categories.get(i);
                 
-                Deal additionalDeal = new Deal(
+                Deal additionalDeal = buildNewDeal(
                     userName,
                     contactNumber,
                     category.getEventDate(),
                     category.getVenue(),
                     category.getBudget(),
-                    category.getExpectedGathering()
+                    category.getExpectedGathering(),
+                    person.getId()
                 );
-                
-                // Set required fields with default values
-                setDefaultDealFields(additionalDeal);
                 additionalDeal.setCategoryId(resolveCategoryIdFromName(category.getName()));
-                
-                // Set person_id
-                additionalDeal.setPersonId(person.getId());
                 
                 dealRepository.save(additionalDeal);
             }

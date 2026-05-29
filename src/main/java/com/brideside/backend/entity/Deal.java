@@ -168,6 +168,12 @@ public class Deal {
     
     @Column(name = "stage_id")
     private Long stageId;
+
+    @Column(name = "is_deleted", nullable = false)
+    private Boolean isDeleted = false;
+
+    @Column(name = "deal_owner_override")
+    private Boolean dealOwnerOverride = false;
     
     // Default constructor
     public Deal() {}
@@ -400,6 +406,22 @@ public class Deal {
     
     public void setStageId(Long stageId) {
         this.stageId = stageId;
+    }
+
+    public Boolean getIsDeleted() {
+        return isDeleted;
+    }
+
+    public void setIsDeleted(Boolean isDeleted) {
+        this.isDeleted = isDeleted;
+    }
+
+    public Boolean getDealOwnerOverride() {
+        return dealOwnerOverride;
+    }
+
+    public void setDealOwnerOverride(Boolean dealOwnerOverride) {
+        this.dealOwnerOverride = dealOwnerOverride;
     }
     
     @Override

@@ -22,6 +22,8 @@ public interface DealRepository extends JpaRepository<Deal, Integer> {
      * @return list of deals for the given contact number
      */
     List<Deal> findByContactNumber(String contactNumber);
+
+    List<Deal> findByContactNumberOrderByCreatedAtDesc(String contactNumber);
     
     /**
      * Find all deals by category id (FK to {@code categories.id})

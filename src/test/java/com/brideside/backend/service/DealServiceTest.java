@@ -6,6 +6,8 @@ import com.brideside.backend.dto.DealInitRequestDto;
 import com.brideside.backend.dto.DealUpdateRequestDto;
 import com.brideside.backend.entity.Deal;
 import com.brideside.backend.entity.Person;
+import com.brideside.backend.enums.DealStatus;
+import com.brideside.backend.enums.DealSubSource;
 import com.brideside.backend.repository.DealRepository;
 import com.brideside.backend.repository.OrganizationRepository;
 import com.brideside.backend.repository.PersonRepository;
@@ -72,7 +74,9 @@ class DealServiceTest {
         // Given
         Person mockPerson = new Person();
         mockPerson.setId(1L);
-        when(personRepository.findByPhoneAndIsDeleted(anyString(), eq(false))).thenReturn(java.util.Optional.empty());
+        when(dealRepository.findByContactNumberOrderByCreatedAtDesc(anyString())).thenReturn(Arrays.asList());
+        when(personRepository.findFirstByPhoneAndIsDeletedOrderByCreatedAtDesc(anyString(), eq(false)))
+                .thenReturn(Optional.empty());
         when(personRepository.save(any(Person.class))).thenReturn(mockPerson);
         when(dealRepository.save(any(Deal.class))).thenReturn(new Deal());
 
@@ -104,7 +108,6 @@ class DealServiceTest {
 
     @Test
     void testInitializeDeal_NewDeal() {
-        // Given
         DealInitRequestDto initRequest = new DealInitRequestDto();
         initRequest.setContactNumber("+1234567890");
         
@@ -114,25 +117,143 @@ class DealServiceTest {
         Person mockPerson = new Person();
         mockPerson.setId(1L);
         
-        when(dealRepository.findByContactNumber("+1234567890")).thenReturn(Arrays.asList());
-        when(personRepository.findByPhoneAndIsDeleted("+1234567890", false)).thenReturn(java.util.Optional.empty());
+        when(dealRepository.findByContactNumberOrderByCreatedAtDesc("+1234567890")).thenReturn(Arrays.asList());
+        when(personRepository.findFirstByPhoneAndIsDeletedOrderByCreatedAtDesc("+1234567890", false))
+                .thenReturn(Optional.empty());
         when(personRepository.save(any(Person.class))).thenReturn(mockPerson);
-        when(dealRepository.save(any(Deal.class))).thenReturn(savedDeal);
+        when(dealRepository.save(any(Deal.class))).thenAnswer(invocation -> {
+            Deal saved = invocation.getArgument(0);
+            assertEquals(false, saved.getDealOwnerOverride());
+            assertEquals(false, saved.getIsDeleted());
+            saved.setId(1);
+            return saved;
+        });
 
-        // When
         Integer result = dealService.initializeDeal(initRequest);
 
-        // Then
         assertNotNull(result);
         assertEquals(1, result);
-        verify(dealRepository, times(1)).findByContactNumber("+1234567890");
         verify(personRepository, times(1)).save(any(Person.class));
         verify(dealRepository, times(1)).save(any(Deal.class));
     }
 
     @Test
+    void testInitializeDeal_ReusesInProgressLandingPageDeal() {
+        DealInitRequestDto initRequest = new DealInitRequestDto();
+        initRequest.setContactNumber("+1234567890");
+
+        Deal existingDeal = new Deal();
+        existingDeal.setId(5);
+        existingDeal.setContactNumber("+1234567890");
+        existingDeal.setIsDeleted(false);
+        existingDeal.setStatus(DealStatus.IN_PROGRESS);
+        existingDeal.setDealSubSource(DealSubSource.LANDING_PAGE);
+
+        when(dealRepository.findByContactNumberOrderByCreatedAtDesc("+1234567890"))
+                .thenReturn(Arrays.asList(existingDeal));
+        when(dealRepository.save(existingDeal)).thenReturn(existingDeal);
+
+        Integer result = dealService.initializeDeal(initRequest);
+
+        assertEquals(5, result);
+        verify(dealRepository, times(1)).save(existingDeal);
+        verify(personRepository, never()).save(any(Person.class));
+        verify(dealRepository, never()).save(argThat(deal -> deal.getId() == null));
+    }
+
+    @Test
+    void testInitializeDeal_CreatesWhenExistingDealIsDeleted() {
+        DealInitRequestDto initRequest = new DealInitRequestDto();
+        initRequest.setContactNumber("+1234567890");
+
+        Deal deletedDeal = new Deal();
+        deletedDeal.setId(2);
+        deletedDeal.setIsDeleted(true);
+        deletedDeal.setStatus(DealStatus.IN_PROGRESS);
+        deletedDeal.setDealSubSource(DealSubSource.LANDING_PAGE);
+
+        Person mockPerson = new Person();
+        mockPerson.setId(1L);
+
+        when(dealRepository.findByContactNumberOrderByCreatedAtDesc("+1234567890"))
+                .thenReturn(Arrays.asList(deletedDeal));
+        when(personRepository.findFirstByPhoneAndIsDeletedOrderByCreatedAtDesc("+1234567890", false))
+                .thenReturn(Optional.empty());
+        when(personRepository.save(any(Person.class))).thenReturn(mockPerson);
+        when(dealRepository.save(any(Deal.class))).thenAnswer(invocation -> {
+            Deal saved = invocation.getArgument(0);
+            saved.setId(3);
+            return saved;
+        });
+
+        Integer result = dealService.initializeDeal(initRequest);
+
+        assertEquals(3, result);
+        verify(dealRepository, times(1)).save(argThat(deal -> deal.getId() == null));
+    }
+
+    @Test
+    void testInitializeDeal_CreatesWhenExistingDealIsWhatsappInProgress() {
+        DealInitRequestDto initRequest = new DealInitRequestDto();
+        initRequest.setContactNumber("+1234567890");
+
+        Deal whatsappDeal = new Deal();
+        whatsappDeal.setId(4);
+        whatsappDeal.setIsDeleted(false);
+        whatsappDeal.setStatus(DealStatus.IN_PROGRESS);
+        whatsappDeal.setDealSubSource(DealSubSource.WHATSAPP);
+
+        Person mockPerson = new Person();
+        mockPerson.setId(1L);
+
+        when(dealRepository.findByContactNumberOrderByCreatedAtDesc("+1234567890"))
+                .thenReturn(Arrays.asList(whatsappDeal));
+        when(personRepository.findFirstByPhoneAndIsDeletedOrderByCreatedAtDesc("+1234567890", false))
+                .thenReturn(Optional.empty());
+        when(personRepository.save(any(Person.class))).thenReturn(mockPerson);
+        when(dealRepository.save(any(Deal.class))).thenAnswer(invocation -> {
+            Deal saved = invocation.getArgument(0);
+            saved.setId(6);
+            return saved;
+        });
+
+        Integer result = dealService.initializeDeal(initRequest);
+
+        assertEquals(6, result);
+    }
+
+    @Test
+    void testInitializeDeal_CreatesWhenExistingDealIsWonLandingPage() {
+        DealInitRequestDto initRequest = new DealInitRequestDto();
+        initRequest.setContactNumber("+1234567890");
+
+        Deal wonDeal = new Deal();
+        wonDeal.setId(7);
+        wonDeal.setIsDeleted(false);
+        wonDeal.setStatus(DealStatus.WON);
+        wonDeal.setDealSubSource(DealSubSource.LANDING_PAGE);
+
+        Person mockPerson = new Person();
+        mockPerson.setId(1L);
+
+        when(dealRepository.findByContactNumberOrderByCreatedAtDesc("+1234567890"))
+                .thenReturn(Arrays.asList(wonDeal));
+        when(personRepository.findFirstByPhoneAndIsDeletedOrderByCreatedAtDesc("+1234567890", false))
+                .thenReturn(Optional.empty());
+        when(personRepository.save(any(Person.class))).thenReturn(mockPerson);
+        when(dealRepository.save(any(Deal.class))).thenAnswer(invocation -> {
+            Deal saved = invocation.getArgument(0);
+            saved.setId(8);
+            return saved;
+        });
+
+        Integer result = dealService.initializeDeal(initRequest);
+
+        assertEquals(8, result);
+    }
+
+    @Test
     void testInitializeDeal_ExistingDeal() {
-        // Given
         DealInitRequestDto initRequest = new DealInitRequestDto();
         initRequest.setContactNumber("+1234567890");
         
@@ -140,20 +261,18 @@ class DealServiceTest {
         existingDeal.setId(1);
         existingDeal.setContactNumber("+1234567890");
         existingDeal.setUserName("Existing User");
+        existingDeal.setIsDeleted(false);
+        existingDeal.setStatus(DealStatus.IN_PROGRESS);
+        existingDeal.setDealSubSource(DealSubSource.LANDING_PAGE);
         
-        Deal updatedDeal = new Deal();
-        updatedDeal.setId(1);
-        
-        when(dealRepository.findByContactNumber("+1234567890")).thenReturn(Arrays.asList(existingDeal));
-        when(dealRepository.save(existingDeal)).thenReturn(updatedDeal);
+        when(dealRepository.findByContactNumberOrderByCreatedAtDesc("+1234567890"))
+                .thenReturn(Arrays.asList(existingDeal));
+        when(dealRepository.save(existingDeal)).thenReturn(existingDeal);
 
-        // When
         Integer result = dealService.initializeDeal(initRequest);
 
-        // Then
         assertNotNull(result);
         assertEquals(1, result);
-        verify(dealRepository, times(1)).findByContactNumber("+1234567890");
         verify(dealRepository, times(1)).save(existingDeal);
     }
 
@@ -177,7 +296,8 @@ class DealServiceTest {
         mockPerson.setName("TBS");
 
         when(dealRepository.findById(1)).thenReturn(Optional.of(existingDeal));
-        when(personRepository.findByPhoneAndIsDeleted("+1234567890", false)).thenReturn(Optional.of(mockPerson));
+        when(personRepository.findFirstByPhoneAndIsDeletedOrderByCreatedAtDesc("+1234567890", false))
+                .thenReturn(Optional.of(mockPerson));
         when(personRepository.save(any(Person.class))).thenReturn(mockPerson);
         when(dealRepository.save(any(Deal.class))).thenAnswer(invocation -> {
             Deal saved = invocation.getArgument(0);
@@ -197,7 +317,9 @@ class DealServiceTest {
 
         Person mockPerson = new Person();
         mockPerson.setId(1L);
-        when(personRepository.findByPhoneAndIsDeleted(anyString(), eq(false))).thenReturn(Optional.empty());
+        when(dealRepository.findByContactNumberOrderByCreatedAtDesc(anyString())).thenReturn(Arrays.asList());
+        when(personRepository.findFirstByPhoneAndIsDeletedOrderByCreatedAtDesc(anyString(), eq(false)))
+                .thenReturn(Optional.empty());
         when(personRepository.save(any(Person.class))).thenReturn(mockPerson);
         when(dealRepository.save(any(Deal.class))).thenAnswer(invocation -> {
             Deal saved = invocation.getArgument(0);
@@ -255,7 +377,8 @@ class DealServiceTest {
         updatedPerson.setName("John Doe");
         
         when(dealRepository.findById(1)).thenReturn(java.util.Optional.of(existingDeal));
-        when(personRepository.findByPhoneAndIsDeleted("+1234567890", false)).thenReturn(java.util.Optional.of(mockPerson));
+        when(personRepository.findFirstByPhoneAndIsDeletedOrderByCreatedAtDesc("+1234567890", false))
+                .thenReturn(java.util.Optional.of(mockPerson));
         when(personRepository.save(any(Person.class))).thenReturn(updatedPerson);
         
         // Use Answer to control mock behavior based on call count

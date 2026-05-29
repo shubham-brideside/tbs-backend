@@ -24,6 +24,8 @@ public interface PersonRepository extends JpaRepository<Person, Long> {
      * @return optional person
      */
     Optional<Person> findByPhoneAndIsDeleted(String phone, Boolean isDeleted);
+
+    Optional<Person> findFirstByPhoneAndIsDeletedOrderByCreatedAtDesc(String phone, Boolean isDeleted);
     
     /**
      * Find all persons by phone number
