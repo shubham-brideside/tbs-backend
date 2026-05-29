@@ -357,6 +357,9 @@ class DealServiceTest {
         existingDeal.setId(1);
         existingDeal.setUserName("TBS");
         existingDeal.setContactNumber("+1234567890");
+        existingDeal.setIsDeleted(false);
+        existingDeal.setStatus(DealStatus.IN_PROGRESS);
+        existingDeal.setDealSubSource(DealSubSource.LANDING_PAGE);
 
         Deal updatedDeal = new Deal();
         updatedDeal.setId(1);
@@ -431,6 +434,9 @@ class DealServiceTest {
         existingDeal.setId(1);
         existingDeal.setUserName("TBS");
         existingDeal.setContactNumber("+1234567890");
+        existingDeal.setIsDeleted(false);
+        existingDeal.setStatus(DealStatus.IN_PROGRESS);
+        existingDeal.setDealSubSource(DealSubSource.LANDING_PAGE);
         
         Deal updatedDeal = new Deal();
         updatedDeal.setId(1);
