@@ -3,6 +3,7 @@ package com.brideside.backend.controller;
 import com.brideside.backend.dto.DealRequestDto;
 import com.brideside.backend.dto.DealResponseDto;
 import com.brideside.backend.dto.DealInitRequestDto;
+import com.brideside.backend.dto.DealInitResponseDto;
 import com.brideside.backend.dto.DealUpdateRequestDto;
 import com.brideside.backend.service.DealService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -17,6 +18,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.HashMap;
 import java.util.List;
@@ -61,7 +63,7 @@ public class DealController {
      */
     @Operation(
         summary = "Initialize Deal", 
-        description = "Initialize a deal with contact number. If a deal with the same contact number already exists, it updates the updated_at timestamp. Otherwise, it creates a new basic deal entry. This is the first step in the two-step deal creation process. Returns a deal ID that can be used later to update the deal with full details using the PUT /api/deals/{id} endpoint.",
+        description = "Initialize a deal with contact number. Returns deal id plus flags indicating whether PUT /{id}/details is required. Reuses an active IN_PROGRESS LANDING_PAGE deal when one exists; otherwise creates a placeholder deal (name TBS).",
         tags = {"Deal Initialization"}
     )
     @ApiResponses(value = {
@@ -70,9 +72,9 @@ public class DealController {
                 description = "Deal initialized successfully",
                 content = @Content(
                     mediaType = "application/json",
-                    schema = @Schema(implementation = Map.class),
+                    schema = @Schema(implementation = DealInitResponseDto.class),
                     examples = @ExampleObject(
-                        value = "{\"deal_id\": 123, \"message\": \"Deal initialized successfully with contact number: +1234567890\"}"
+                        value = "{\"id\": 123, \"deal_id\": 123, \"dealId\": 123, \"is_new_deal\": true, \"already_configured\": false, \"requires_details\": true, \"message\": \"Deal initialized successfully with contact number: +1234567890\"}"
                     )
                 )
             ),
@@ -80,7 +82,7 @@ public class DealController {
             @ApiResponse(responseCode = "500", description = "Internal server error")
     })
     @PostMapping("/init")
-    public ResponseEntity<Map<String, Object>> initializeDeal(
+    public ResponseEntity<DealInitResponseDto> initializeDeal(
         @io.swagger.v3.oas.annotations.parameters.RequestBody(
             description = "Contact number for the deal",
             required = true,
@@ -94,17 +96,11 @@ public class DealController {
         )
         @Valid @RequestBody DealInitRequestDto dealInitRequest) {
         try {
-            Integer dealId = dealService.initializeDeal(dealInitRequest);
-            Map<String, Object> response = new HashMap<>();
-            response.put("deal_id", dealId);
-            response.put("dealId", dealId);
-            response.put("id", dealId);
-            response.put("message", "Deal processed successfully with contact number: " + dealInitRequest.getContactNumber());
+            DealInitResponseDto response = dealService.initializeDeal(dealInitRequest);
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
         } catch (Exception e) {
-            Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("error", "Error initializing deal: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Error initializing deal: " + e.getMessage(), e);
         }
     }
     
@@ -156,7 +152,7 @@ public class DealController {
         } catch (RuntimeException e) {
             if (e.getMessage().contains("not found")) {
                 return ResponseEntity.notFound().build();
-            } else if (e.getMessage().contains("already been fully configured")) {
+            } else if (e.getMessage().contains("cannot be updated through this endpoint")) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
             }
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();

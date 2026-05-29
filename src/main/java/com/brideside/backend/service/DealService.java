@@ -3,6 +3,7 @@ package com.brideside.backend.service;
 import com.brideside.backend.dto.DealRequestDto;
 import com.brideside.backend.dto.DealResponseDto;
 import com.brideside.backend.dto.DealInitRequestDto;
+import com.brideside.backend.dto.DealInitResponseDto;
 import com.brideside.backend.dto.DealUpdateRequestDto;
 import com.brideside.backend.entity.Deal;
 import com.brideside.backend.entity.Person;
@@ -279,12 +280,16 @@ public class DealService {
     }
 
     /**
-     * Reuse only when an active landing-page lead is still in progress.
+     * Active landing-page lead still in progress (matches /init reuse rules).
      */
-    private boolean shouldReuseExistingDeal(Deal deal) {
+    private boolean isActiveLandingPageDeal(Deal deal) {
         return !Boolean.TRUE.equals(deal.getIsDeleted())
                 && deal.getStatus() == DealStatus.IN_PROGRESS
                 && deal.getDealSubSource() == DealSubSource.LANDING_PAGE;
+    }
+
+    private boolean shouldReuseExistingDeal(Deal deal) {
+        return isActiveLandingPageDeal(deal);
     }
 
     private Optional<Deal> findReusableDeal(String contactNumber) {
@@ -306,11 +311,11 @@ public class DealService {
      * If a deal with the same contact number already exists, it updates the updated_at timestamp
      * Otherwise, it creates a new basic deal entry that can be updated later with full details
      * @param dealInitRequest the request containing only contact number
-     * @return the deal ID (existing or newly created)
+     * @return init result with deal id and flags for the frontend
      */
     @Transactional
     @CacheEvict(value = "deals", allEntries = true)
-    public Integer initializeDeal(DealInitRequestDto dealInitRequest) {
+    public DealInitResponseDto initializeDeal(DealInitRequestDto dealInitRequest) {
         String contactNumber = dealInitRequest.getContactNumber();
 
         Optional<Deal> reusableDeal = findReusableDeal(contactNumber);
@@ -318,7 +323,9 @@ public class DealService {
             Deal existingDeal = reusableDeal.get();
             logger.info("Reusing deal {} for contact {} (IN_PROGRESS + LANDING_PAGE)",
                     existingDeal.getId(), contactNumber);
-            return dealRepository.save(existingDeal).getId();
+            dealRepository.save(existingDeal);
+            return DealInitResponseDto.fromDeal(
+                    existingDeal.getId(), false, existingDeal.getUserName(), contactNumber);
         }
 
         logger.info("Creating new deal for contact {} — no reusable IN_PROGRESS LANDING_PAGE deal found",
@@ -327,7 +334,7 @@ public class DealService {
         Person person = createOrGetPerson("TBS", contactNumber, null, null);
         Deal savedDeal = dealRepository.save(buildNewDeal("TBS", contactNumber, null, null, null, null, person.getId()));
         logger.info("Created new deal with ID: {}", savedDeal.getId());
-        return savedDeal.getId();
+        return DealInitResponseDto.fromDeal(savedDeal.getId(), true, savedDeal.getUserName(), contactNumber);
     }
     
     /**
@@ -453,9 +460,8 @@ public class DealService {
         Deal existingDeal = dealRepository.findById(id)
                                         .orElseThrow(() -> new RuntimeException("Deal not found with id: " + id));
         
-        // Check if this deal was initialized (has placeholder values)
-        if (!"TBS".equals(existingDeal.getUserName())) {
-            throw new RuntimeException("Deal with id " + id + " has already been fully configured");
+        if (!isActiveLandingPageDeal(existingDeal)) {
+            throw new RuntimeException("Deal with id " + id + " cannot be updated through this endpoint");
         }
         
         List<DealUpdateRequestDto.CategoryDto> categories = updateCategoriesOrDefault(dealUpdateRequest.getCategories());
@@ -463,19 +469,17 @@ public class DealService {
         String contactNumber = existingDeal.getContactNumber();
         String userName = dealUpdateRequest.getName();
         
-        // Create or get person for the contact
         DealUpdateRequestDto.CategoryDto firstCategory = categories.get(0);
         Person person = createOrGetPerson(userName, contactNumber, firstCategory.getVenue(), firstCategory.getEventDate());
         
-        // Update person with latest information if it was a placeholder
-        if ("TBS".equals(person.getName()) || person.getName().startsWith("TBS")) {
-            person.setName(userName);
+        person.setName(userName);
+        if (firstCategory.getVenue() != null) {
             person.setVenue(firstCategory.getVenue());
-            if (firstCategory.getEventDate() != null) {
-                person.setWeddingDate(firstCategory.getEventDate().format(DATE_FORMATTER));
-            }
-            personRepository.save(person);
         }
+        if (firstCategory.getEventDate() != null) {
+            person.setWeddingDate(firstCategory.getEventDate().format(DATE_FORMATTER));
+        }
+        personRepository.save(person);
         
         // Update the original deal with the first category (primary deal)
         

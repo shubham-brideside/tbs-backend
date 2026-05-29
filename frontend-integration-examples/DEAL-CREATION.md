@@ -22,33 +22,40 @@ Set your env variable (e.g. `VITE_DEALS_API_URL`) to this base path **without** 
 
 ## Overview
 
-Deal creation is a **two-step** process:
+Deal creation is a **two-step** process, but step 2 is **conditional**:
 
 | Step | Endpoint | When to call | Frontend sends |
 |------|----------|--------------|----------------|
 | 1 | `POST /init` | When phone is captured (e.g. after OTP) | `contact_number` |
-| 2 | `PUT /{dealId}/details` | On final form submit | `name` |
+| 2 | `PUT /{dealId}/details` | **Only if** `requires_details === true` | `name` |
 
 You do **not** need to send `categories`, `event_date`, `venue`, `budget`, or `expected_gathering`. If omitted, the backend defaults the deal to category **Planning** (`category_id = 4`).
+
+### Decision rule (important)
+
+After `POST /init`, read `requires_details` from the response:
+
+| `requires_details` | What to do |
+|--------------------|------------|
+| `true` | User still needs to submit their name → call `PUT /{dealId}/details` on form submit |
+| `false` | Deal already has a real name for this phone → **skip** `/details`, show success / redirect |
 
 ```
 ┌──────────────────┐   POST /init              ┌─────────────┐
 │ Phone capture    │ ────────────────────────► │ Backend     │
-│ (OTP / widget)   │   { contact_number }      │ deal id=42  │
+│ (OTP / widget)   │   { contact_number }      │ deal + flags│
 └────────┬─────────┘                           └──────┬──────┘
          │                                            │
-         │  Store dealId (42)                         │
+         │  Store dealId + requires_details           │
          ▼                                            │
-┌──────────────────┐   User enters name                │
-│ Lead form        │                                   │
-└────────┬─────────┘                                   │
-         │                                             │
-         │  PUT /42/details                            │
-         │  { name }                                   │
-         ▼                                             ▼
-┌──────────────────┐                           Deal saved with
-│ Success / redirect│                          name + phone + Planning
-└──────────────────┘
+┌──────────────────┐                                  │
+│ Lead form        │                                  │
+└────────┬─────────┘                                  │
+         │                                            │
+         │  requires_details === true?                │
+         ├──── yes ──► PUT /{dealId}/details { name } │
+         │                                            │
+         └──── no  ──► Skip details; deal is ready    ▼
 ```
 
 ---
@@ -77,27 +84,72 @@ Extra fields (e.g. `name`) are **ignored** at this step. Do not rely on them bei
 
 ### Success — `201 Created`
 
+**New deal (placeholder name `"TBS"`):**
+
 ```json
 {
+  "id": 42,
   "deal_id": 42,
   "dealId": 42,
-  "id": 42,
-  "message": "Deal processed successfully with contact number: +919876543210"
+  "is_new_deal": true,
+  "already_configured": false,
+  "requires_details": true,
+  "message": "Deal initialized successfully with contact number: +919876543210"
 }
 ```
 
-**Parse the deal id** using any of the aliases (they are the same value):
+**Existing deal reused — name already submitted (skip step 2):**
+
+```json
+{
+  "id": 43765,
+  "deal_id": 43765,
+  "dealId": 43765,
+  "is_new_deal": false,
+  "already_configured": true,
+  "requires_details": false,
+  "message": "Existing deal reused for contact number: +919876543210. Details step not required."
+}
+```
+
+**Existing deal reused — still placeholder `"TBS"` (call step 2):**
+
+```json
+{
+  "id": 5,
+  "deal_id": 5,
+  "dealId": 5,
+  "is_new_deal": false,
+  "already_configured": false,
+  "requires_details": true,
+  "message": "Existing deal reused for contact number: +919876543210. Submit name via PUT /details."
+}
+```
+
+### Response fields
+
+| Field | Type | Meaning |
+|-------|------|---------|
+| `id` / `deal_id` / `dealId` | number | Same deal id — use any alias |
+| `is_new_deal` | boolean | `true` if a new deal row was created |
+| `already_configured` | boolean | `true` if deal name is not the placeholder `"TBS"` |
+| `requires_details` | boolean | **`true` → call `/details`; `false` → skip** |
+| `message` | string | Human-readable status |
+
+**Parse the deal id:**
 
 ```javascript
 const dealId = data.id ?? data.deal_id ?? data.dealId;
+const needsDetails = data.requires_details === true;
 ```
 
-Store `dealId` in URL state, session storage, or React state for step 2.
+Store `dealId` and `requires_details` until form submit.
 
 ### Behaviour notes
 
-- If a deal already exists for the same phone, the backend **reuses** that deal and refreshes its timestamp (returns the existing id).
-- The deal is created with placeholder name `"TBS"` until step 2 runs.
+- Reuses the latest deal for the same phone when it is **active landing-page** (`IN_PROGRESS`, `LANDING_PAGE`, not deleted).
+- Otherwise creates a new deal (e.g. previous deal was deleted, WON/LOST, or from WhatsApp).
+- New deals start with placeholder name `"TBS"` until step 2 runs.
 
 ### Errors
 
@@ -110,7 +162,9 @@ Store `dealId` in URL state, session storage, or React state for step 2.
 
 ## Step 2 — Submit name (`PUT /{dealId}/details`)
 
-Call this when the user submits the form with their name.
+Call this **only when** `requires_details === true` from step 1.
+
+If the user returns with the same phone and already submitted their name before, init returns `requires_details: false` — **do not call this endpoint** (avoids unnecessary requests and errors).
 
 ### Request
 
@@ -170,9 +224,11 @@ The UI usually only needs to confirm `res.ok`; the full body is optional to disp
 | Status | Cause |
 |--------|--------|
 | `404` | `dealId` does not exist |
-| `400` | Deal was already fully configured (name is no longer `"TBS"`) |
+| `400` | Deal is not an active landing-page deal (wrong status, sub-source, or deleted) |
 | `400` | Validation failed (e.g. blank `name`) |
 | `500` | Server error |
+
+Active landing-page deals (`IN_PROGRESS` + `LANDING_PAGE`) **can** be updated even if the name is no longer `"TBS"` (e.g. user resubmits the form). Prefer skipping `/details` when init says `requires_details: false`.
 
 ---
 
@@ -246,7 +302,14 @@ async function initDeal(contactNumber) {
   const data = await res.json();
   const dealId = data.id ?? data.deal_id ?? data.dealId;
   if (dealId == null) throw new Error('Init response missing deal id');
-  return dealId;
+
+  return {
+    dealId,
+    isNewDeal: data.is_new_deal === true,
+    alreadyConfigured: data.already_configured === true,
+    requiresDetails: data.requires_details === true,
+    message: data.message,
+  };
 }
 
 async function submitDealDetails(dealId, name) {
@@ -264,18 +327,46 @@ async function submitDealDetails(dealId, name) {
   return res.json();
 }
 
-/** Full flow: phone first, then name on submit */
+/** Full flow: phone first, then name on submit (skips details when not required) */
 async function createDeal(contactNumber, name) {
-  const dealId = await initDeal(contactNumber);
-  return submitDealDetails(dealId, name);
+  const init = await initDeal(contactNumber);
+
+  if (!init.requiresDetails) {
+    return { dealId: init.dealId, skippedDetails: true, message: init.message };
+  }
+
+  const deal = await submitDealDetails(init.dealId, name);
+  return { dealId: init.dealId, skippedDetails: false, deal };
 }
 ```
 
 ### Typical UI wiring
 
-1. **After OTP / phone verified** → call `initDeal(phone)` and store `dealId`.
-2. **On form submit** → call `submitDealDetails(dealId, name)`.
-3. If the user submits **without** a prior init (no `dealId`), call `initDeal(phone)` first, then `submitDealDetails`.
+1. **After OTP / phone verified** → call `initDeal(phone)` and store `{ dealId, requiresDetails }`.
+2. **On form submit**:
+   - If `requiresDetails === false` → show success / redirect (no API call).
+   - If `requiresDetails === true` → call `submitDealDetails(dealId, name)`.
+3. If the user submits **without** a prior init (no stored state), call `initDeal(phone)` first, then follow step 2.
+
+### Example: guard before calling `/details`
+
+```javascript
+async function onFormSubmit(phone, name, storedInit) {
+  let init = storedInit;
+
+  if (!init?.dealId) {
+    init = await initDeal(phone);
+  }
+
+  if (!init.requiresDetails) {
+    // Returning user — deal already has their name
+    return { success: true, dealId: init.dealId };
+  }
+
+  await submitDealDetails(init.dealId, name);
+  return { success: true, dealId: init.dealId };
+}
+```
 
 ---
 
@@ -287,10 +378,22 @@ export interface DealInitPayload {
 }
 
 export interface DealInitResponse {
+  id: number;
   deal_id: number;
   dealId: number;
-  id: number;
+  is_new_deal: boolean;
+  already_configured: boolean;
+  requires_details: boolean;
   message: string;
+}
+
+/** Parsed init result for app state */
+export interface DealInitResult {
+  dealId: number;
+  isNewDeal: boolean;
+  alreadyConfigured: boolean;
+  requiresDetails: boolean;
+  message?: string;
 }
 
 /** Current simplified form — name only */
@@ -335,7 +438,7 @@ export interface DealResponse {
 
 `POST /api/deals` still exists for older clients. It accepts `name`, `contact_number`, and optional `categories` in one call.
 
-For the **current frontend**, prefer **`POST /init` + `PUT /{id}/details`**. The legacy endpoint is not required for the name + phone flow.
+For the **current frontend**, prefer **`POST /init` + conditional `PUT /{id}/details`**. The legacy endpoint is not required for the name + phone flow.
 
 ---
 
@@ -348,8 +451,8 @@ If the browser calls the API from a different origin (e.g. Vite on `localhost:51
 ## Quick checklist
 
 - [ ] Call `POST /init` when phone is available
-- [ ] Persist `dealId` until form submit
-- [ ] Call `PUT /{dealId}/details` with `{ name }` only
-- [ ] Do not send `categories` unless the user selects services
+- [ ] Persist `dealId` and `requires_details` until form submit
+- [ ] Call `PUT /{dealId}/details` **only when** `requires_details === true`
+- [ ] Send `{ name }` only in step 2 (no `categories` unless user selects services)
 - [ ] Do not send `contact_number` in step 2
-- [ ] Handle `400` if step 2 is called twice on the same deal
+- [ ] When `requires_details === false`, show success without calling `/details`

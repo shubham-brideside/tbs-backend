@@ -3,6 +3,7 @@ package com.brideside.backend.service;
 import com.brideside.backend.dto.DealRequestDto;
 import com.brideside.backend.dto.DealResponseDto;
 import com.brideside.backend.dto.DealInitRequestDto;
+import com.brideside.backend.dto.DealInitResponseDto;
 import com.brideside.backend.dto.DealUpdateRequestDto;
 import com.brideside.backend.entity.Deal;
 import com.brideside.backend.entity.Person;
@@ -129,10 +130,13 @@ class DealServiceTest {
             return saved;
         });
 
-        Integer result = dealService.initializeDeal(initRequest);
+        DealInitResponseDto result = dealService.initializeDeal(initRequest);
 
         assertNotNull(result);
-        assertEquals(1, result);
+        assertEquals(1, result.getId());
+        assertTrue(result.isNewDeal());
+        assertTrue(result.isRequiresDetails());
+        assertFalse(result.isAlreadyConfigured());
         verify(personRepository, times(1)).save(any(Person.class));
         verify(dealRepository, times(1)).save(any(Deal.class));
     }
@@ -144,6 +148,7 @@ class DealServiceTest {
 
         Deal existingDeal = new Deal();
         existingDeal.setId(5);
+        existingDeal.setUserName("TBS");
         existingDeal.setContactNumber("+1234567890");
         existingDeal.setIsDeleted(false);
         existingDeal.setStatus(DealStatus.IN_PROGRESS);
@@ -153,11 +158,39 @@ class DealServiceTest {
                 .thenReturn(Arrays.asList(existingDeal));
         when(dealRepository.save(existingDeal)).thenReturn(existingDeal);
 
-        Integer result = dealService.initializeDeal(initRequest);
+        DealInitResponseDto result = dealService.initializeDeal(initRequest);
 
-        assertEquals(5, result);
+        assertEquals(5, result.getId());
+        assertFalse(result.isNewDeal());
+        assertTrue(result.isRequiresDetails());
+        assertFalse(result.isAlreadyConfigured());
         verify(dealRepository, times(1)).save(existingDeal);
         verify(personRepository, never()).save(any(Person.class));
+    }
+
+    @Test
+    void testInitializeDeal_ReusesAlreadyConfiguredDeal() {
+        DealInitRequestDto initRequest = new DealInitRequestDto();
+        initRequest.setContactNumber("+1234567890");
+
+        Deal existingDeal = new Deal();
+        existingDeal.setId(43765);
+        existingDeal.setUserName("sameer");
+        existingDeal.setContactNumber("+1234567890");
+        existingDeal.setIsDeleted(false);
+        existingDeal.setStatus(DealStatus.IN_PROGRESS);
+        existingDeal.setDealSubSource(DealSubSource.LANDING_PAGE);
+
+        when(dealRepository.findByContactNumberOrderByCreatedAtDesc("+1234567890"))
+                .thenReturn(Arrays.asList(existingDeal));
+        when(dealRepository.save(existingDeal)).thenReturn(existingDeal);
+
+        DealInitResponseDto result = dealService.initializeDeal(initRequest);
+
+        assertEquals(43765, result.getId());
+        assertFalse(result.isNewDeal());
+        assertFalse(result.isRequiresDetails());
+        assertTrue(result.isAlreadyConfigured());
     }
 
     @Test
@@ -188,9 +221,11 @@ class DealServiceTest {
             return returned;
         });
 
-        Integer result = dealService.initializeDeal(initRequest);
+        DealInitResponseDto result = dealService.initializeDeal(initRequest);
 
-        assertEquals(3, result);
+        assertEquals(3, result.getId());
+        assertTrue(result.isNewDeal());
+        assertTrue(result.isRequiresDetails());
         verify(dealRepository, times(1)).save(any(Deal.class));
         verify(personRepository, times(1)).save(any(Person.class));
     }
@@ -220,9 +255,10 @@ class DealServiceTest {
             return saved;
         });
 
-        Integer result = dealService.initializeDeal(initRequest);
+        DealInitResponseDto result = dealService.initializeDeal(initRequest);
 
-        assertEquals(6, result);
+        assertEquals(6, result.getId());
+        assertTrue(result.isNewDeal());
     }
 
     @Test
@@ -250,9 +286,10 @@ class DealServiceTest {
             return saved;
         });
 
-        Integer result = dealService.initializeDeal(initRequest);
+        DealInitResponseDto result = dealService.initializeDeal(initRequest);
 
-        assertEquals(8, result);
+        assertEquals(8, result.getId());
+        assertTrue(result.isNewDeal());
     }
 
     @Test
@@ -272,11 +309,43 @@ class DealServiceTest {
                 .thenReturn(Arrays.asList(existingDeal));
         when(dealRepository.save(existingDeal)).thenReturn(existingDeal);
 
-        Integer result = dealService.initializeDeal(initRequest);
+        DealInitResponseDto result = dealService.initializeDeal(initRequest);
 
         assertNotNull(result);
-        assertEquals(1, result);
+        assertEquals(1, result.getId());
+        assertTrue(result.isAlreadyConfigured());
+        assertFalse(result.isRequiresDetails());
         verify(dealRepository, times(1)).save(existingDeal);
+    }
+
+    @Test
+    void testUpdateDealWithoutContactNumber_AllowsResubmitForActiveLandingPageDeal() {
+        DealUpdateRequestDto updateRequest = new DealUpdateRequestDto();
+        updateRequest.setName("sameer");
+
+        Deal existingDeal = new Deal();
+        existingDeal.setId(43765);
+        existingDeal.setUserName("sameer");
+        existingDeal.setContactNumber("+919304683214");
+        existingDeal.setIsDeleted(false);
+        existingDeal.setStatus(DealStatus.IN_PROGRESS);
+        existingDeal.setDealSubSource(DealSubSource.LANDING_PAGE);
+
+        Person mockPerson = new Person();
+        mockPerson.setId(1L);
+        mockPerson.setName("sameer");
+
+        when(dealRepository.findById(43765)).thenReturn(Optional.of(existingDeal));
+        when(personRepository.findFirstByPhoneAndIsDeletedOrderByCreatedAtDesc("+919304683214", false))
+                .thenReturn(Optional.of(mockPerson));
+        when(personRepository.save(any(Person.class))).thenReturn(mockPerson);
+        when(dealRepository.save(any(Deal.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        DealResponseDto.DealDto result = dealService.updateDealWithoutContactNumber(43765, updateRequest);
+
+        assertNotNull(result);
+        verify(dealRepository, times(1)).save(existingDeal);
+        verify(personRepository, times(1)).save(mockPerson);
     }
 
     @Test
